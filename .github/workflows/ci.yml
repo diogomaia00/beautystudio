@@ -1,0 +1,10 @@
+name: CI/CD pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_requests:
+    branches: [ main ]
+
+jobs: 
+  # TODO
