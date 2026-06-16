@@ -7,7 +7,6 @@ Create a production-ready monorepo structure for a SaaS-ready aesthetic single-c
 * Django
 * Django REST Framework
 * PostgreSQL
-* Redis
 * Celery
 
 ## Frontend:
@@ -20,7 +19,6 @@ Create a production-ready monorepo structure for a SaaS-ready aesthetic single-c
 
 * Docker
 * NGINX reverse proxy
-* S3-compatible media storage support (future-ready)
 
 ## System requirements (high level):
 
@@ -29,9 +27,9 @@ Create a production-ready monorepo structure for a SaaS-ready aesthetic single-c
 * scheduling/editing services and workflows
 * authentication roles (admin, clients and staff)
 * background jobs (notifications to the staff to and reminders)
-* cron jobs (monthly reports of services and money made)
+* cron jobs (monthly reports with number of services made and money made)
 * independent frontend deployment capability (client app and backoffice for staff and admin)
-* compatibility and responsiveness across various devices (computers, ipads, android tablets, iphones and android phones)
+* compatibility and responsiveness across various devices (computers, ipads, iphones and android phones)
 * containerized local development
 
 IMPORTANT: Use a domain-driven backend structure and feature-based frontend structure.
@@ -51,8 +49,6 @@ beauty-studio/
     README.md
 
 ---
-
-FINAL REQUIREMENT
 
 Generate:
 

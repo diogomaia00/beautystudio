@@ -1,22 +1,42 @@
 # BUSINESS RULES
 
-- MAX servicos por dia por pessoa: 3
-- MAX servicos por semana por pessoa: 3
-- Tem de haver a possibilidade de fazer batch de servicos (marcar 3 duma vez por exemplo)
+# Booking and Slot Management Requirements
+
+## Booking Limits
+* Maximum appointments per client per day: 3.
+* Maximum appointments per client per week: 3.
+
+## Appointment Batches
+* Clients should be able to create appointment batches.
+* Each batch can contain a maximum of 3 appointments.
+
+## Waitlist for Occupied Slots
+
+* Occupied slots should have a waitlist.
+* When someone joins the waitlist, the staff member responsible for that service receives a notification in the Back Office (BO).
+* The responsible staff member can then contact the person (out of the app scope) on the waitlist directly to decide whether a booking swap should be arranged or not.
+
+## Direct Bookings and Custom Requests
+
+* Users can make direct bookings for any available time slots within the next 2 months.
+* If a user wants to book beyond the 2-month availability window, there should be a custom booking request option where they can specify:
+  * Preferred date
+  * Preferred time
+  * Desired service
+* The staff member appointed receives this request as a notification in the Back Office (BO).
 
 
-- Slots ocupadas ficam com uma lista de espera 
-	- Quando alguem entra na lista de espera, a tiz recebe notificacao no BO para falar diretamente com a pessoa em lista de espera para ver se faz a troca ou não e depois 
+## Slot Configuration per Service and Client
 
-- Uma pessoa consegue fazer marcações diretas nos horarios disponiveis nos próximos 2 meses
-	- Se quiser marcar para depois desses 2 meses existe uma opção de marcacao personalizavel para a data e hora e servico que quer e a tiz recebe essa notificacao no BO  
+* In the Back Office (BO), it should be possible to configure the number of slots occupied by each client for each type of service.
+* Each user profile can be adjusted to reflect the actual time typically spent with that client.
+  * This directly impacts the number of slots that are occupied when a booking is made.
 
-- No BO deve ser possivel editar o numero de slots que cada pessoa ocupa em cada tipo de servico
-	- Cada user pode ser editado para colocar o tempo que a tiz demora com essa pessoa --> tem influencia nas slots ocupadas  
-	- Unhas com NAIL ART acresce 15 min ou 30 min
+* Nail services with **Nail Art** should automatically add an extra:
+  * 15 minutes, or 30 minutes depending on the selected Nail Art option.
 
 - Ligar BO ao google calendar da tiz e do joao
-- Depois de marcação feita associar ao google calendar e ao calendario do iphone
+- Depois de marcação feita associar ao google calendar 
 
 - Whatsapp: Tiz vai arranjar um numero novo para começar a dar às clientes para em 2027 já ser esse numero usado para marcacoes
 	- Mensagens: 
