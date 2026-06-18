@@ -1,65 +1,70 @@
-# PROJECT GOAL
+# PROJECT OVERVIEW
 
-Create a production-ready monorepo structure for a SaaS-ready aesthetic single-clinic booking web application and a correspondent back-office using:
+Create a production-ready monorepo for a **SaaS-ready aesthetic single-clinic
+booking web application** and its corresponding **back office (BO)**.
 
-## Backend:
+## TECH STACK
 
-* Django
-* Django REST Framework
-* PostgreSQL
-* Celery
+### Backend
+- Django
+- Django REST Framework
+- PostgreSQL
+- Procrastinate (Postgres-native task queue)
 
-## Frontend:
+### Frontend
+- Next.js (React + TypeScript)
+- TanStack Query
+- FullCalendar
 
-* Next.js (React using typescript)
-* TanStack Query
-* FullCalendar
+### Infrastructure
+- Docker / Docker Compose
+- NGINX reverse proxy
 
-## Infrastructure:
+> No application cache and no Redis are needed (low user volume). Background and
+> scheduled jobs run on a Postgres-native task queue (Procrastinate).
 
-* Docker
-* NGINX reverse proxy
+## HIGH-LEVEL SYSTEM REQUIREMENTS
 
-## System requirements (high level):
+- Single-clinic architecture with multiple staff members.
+- Handle concurrent booking by clients safely (DB transactions, idempotency).
+- Scheduling and editing of services and workflows.
+- Authentication roles: admin, staff, clients.
+- Background jobs (staff notifications, client reminders).
+- Cron jobs (monthly reports: services made and revenue).
+- Client app and back office as `(client)`/`(bo)` route groups in one Next.js app, served under one domain (see ADR 0005).
+- Responsive across devices (desktop, iPad, iPhone, Android).
+- Containerized local development.
 
-* single clinic architecture with multiple staff workers
-* handle concurrent booking by clients
-* scheduling/editing services and workflows
-* authentication roles (admin, clients and staff)
-* background jobs (notifications to the staff to and reminders)
-* cron jobs (monthly reports with number of services made and money made)
-* independent frontend deployment capability (client app and backoffice for staff and admin)
-* compatibility and responsiveness across various devices (computers, ipads, iphones and android phones)
-* containerized local development
-
-IMPORTANT: Use a domain-driven backend structure and feature-based frontend structure.
-
----
+> IMPORTANT: domain-driven backend structure (`ddd.md`) and feature-based frontend structure (`frontend.md`).
 
 ## MONOREPO ROOT STRUCTURE
 
-beauty-studio/
-    backend/
-    frontend/
-    infra/
-    docker-compose.yml
-    .env
-    .gitignore
-    Makefile
-    README.md
+```
+beautystudio/
+├── backend/            # Django + DRF + Procrastinate
+├── frontend/           # Next.js client app + back office
+├── infra/              # NGINX, Postgres, scripts
+├── docker-compose.yml
+├── .env                # never committed
+├── .gitignore
+├── Makefile
+└── README.md
+```
 
----
+> Source code lives inside `backend/` and `frontend/`. There is no flat `/src` directory at the repo root.
 
-Generate:
+## CANONICAL DOMAIN (v1)
 
-directory structure
-starter configuration files
-docker-compose configuration
-Django project bootstrap
-Next.js bootstrap
-Celery setup scaffold
-NGINX scaffold
-environment variable placeholders
+Backend apps (see `backend.md` for the authoritative list):
+`users`, `services`, `appointments`, `availability`, `notifications`, `analytics`, `reports`.
 
-The result should be a clean production-grade starter monorepo scaffold. 
-If you need any values or have any questions before starting implementation ask first.
+Roadmap (not in v1): online `payments` (MBWay), WhatsApp notifications.
+
+## SCAFFOLD DELIVERABLES
+
+Directory structure, starter configuration files, docker-compose configuration,
+Django project bootstrap, Next.js bootstrap, task-queue (Procrastinate) scaffold, NGINX
+scaffold, environment variable placeholders.
+
+> The goal is a clean, production-grade starter monorepo scaffold. If any value
+> or decision is unclear, ask before implementing (see `CLAUDE.md`).

@@ -249,7 +249,7 @@ BREAKING CHANGE: authentication now requires tokens
 feat: add dark mode
 fix(users): prevent duplicate emails
 docs: improve API examples
-refactor(payments): simplify stripe integration
+refactor(payments): simplify mbway integration
 ```
 
 ---
