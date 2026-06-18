@@ -1,0 +1,37 @@
+@startuml
+title <Flow name>  ' e.g. Create appointment
+
+' Core architecture participants (keep these; add others only if the flow uses them)
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+'participant "Worker (Procrastinate)" as Worker
+'participant "Twilio" as SMS
+
+Client -> FE : submit (e.g. booking form)
+FE -> NGINX : POST /v1/<resource>          ' BO flows use /bo/v1/<resource>
+NGINX -> BE : proxy
+note over BE
+  AuthN: session cookie required
+  AuthZ: role = client | staff | admin
+end note
+BE -> BE : <Serializer>.validate()
+note right of BE
+  Validations:
+  - required fields ...
+  - ...
+end note
+BE -> BE : services.<operation>()
+note over BE
+  Business rules (see business-rules.md):
+  - ...
+  - run inside atomic txn / lock where needed
+end note
+BE -> DB : SELECT ... (selectors.<fn>)
+BE -> DB : INSERT/UPDATE ... (models)
+'BE -> Worker : enqueue <task>
+BE --> FE : <status> (serialized result)
+FE --> Client : result UI
+@enduml
