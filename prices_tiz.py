@@ -22,24 +22,22 @@ class PrecosEstetica(Enum):
     BROW_LAMINATION = 18
 
 
-# Tempos em "numeros de slots de 15 minutos"
+# Tempos em minutos
 class TemposUnhas(Enum):
-    REPARACAO_UNHA = 1                              # 15m
-    REMOCAO_UNHA = 2                                # 30m
-    VERNIZ_GEL_MAOS = 5                             # 1h15m
-    VERNIZ_GEL_PES = 2                              # 30m
-    PRIMEIRA_APLICACAO_UNHA_COM_EXTENSAO = 10       # 2h30m
-    PRIMEIRA_APLICACAO_SOBRE_UNHA_NATURAL = 6       # 1h30m
-    MANUTENCAO_DE_GEL = 6                           # 1h30m
-    MANUTENCAO_DE_GEL_COM_NAIL_ART_SIMPLES = 1      # acrescenta 15m a cada serviço
-    MANUTENCAO_DE_GEL_COM_NAIL_ART_COMPLEXA = 2     # acrescenta 30m a cada serviço
+    REPARACAO_UNHA = 15
+    REMOCAO_UNHA = 30
+    VERNIZ_GEL_PES = 30
+    VERNIZ_GEL_MAOS = 75                            # 1h15
+    PRIMEIRA_APLICACAO_UNHA_COM_EXTENSAO = 150      # 2h30m
+    PRIMEIRA_APLICACAO_SOBRE_UNHA_NATURAL = 90      # 1h30m
+    MANUTENCAO_DE_GEL = 90                          # 1h30m
+    MANUTENCAO_DE_GEL_COM_NAIL_ART_SIMPLES = 15     # acrescenta 15m a cada serviço
+    MANUTENCAO_DE_GEL_COM_NAIL_ART_COMPLEXA = 30    # acrescenta 30m a cada serviço
 
 class TemposEstetica(Enum):
-    BUCO_A_LINHA = 1                # 15m
-    SOBRANCELHA_A_LINHA = 1         # 15m
-    SOBRANCELHA_E_BUCO_A_LINHA = 1  # 15m
-    LIMPEZA_DE_PELE = 5             # 1h15
-    LIFTING_PESTANAS = 6            # 1h30
-    BROW_LAMINATION = 4             # 1h
-
-# NOTA: se for preciso posso mudar os tempos para "numeros de slots de 5 minutos" se preferires
+    BUCO_A_LINHA = 15                # 15m
+    SOBRANCELHA_A_LINHA = 15         # 15m
+    SOBRANCELHA_E_BUCO_A_LINHA = 15  # 15m
+    LIMPEZA_DE_PELE = 75             # 1h15m
+    LIFTING_PESTANAS = 90            # 1h30m
+    BROW_LAMINATION = 60             # 1h
