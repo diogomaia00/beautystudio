@@ -1,0 +1,9 @@
+Django==5.2.3
+djangorestframework==3.17.0
+psycopg[binary]==3.2.3
+procrastinate[django]==3.8.0
+python-decouple==3.8
+gunicorn==22.0.0
+whitenoise==6.9.0
+python-json-logger==3.2.1
+twilio==9.4.0
