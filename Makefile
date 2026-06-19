@@ -1,4 +1,4 @@
-DC = docker compose
+DC = docker-compose
 
 .PHONY: run build down logs \
         migrate makemigrations shell \
