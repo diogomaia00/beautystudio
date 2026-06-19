@@ -1,0 +1,20 @@
+meta {
+  name: BO list alerts
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/bo/v1/notifications/alerts/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  The calling staff member's BO alerts (waitlist joins, custom requests).
+  Optional ?unread_only=true. Mark read: POST /alerts/{id}/read/.
+}

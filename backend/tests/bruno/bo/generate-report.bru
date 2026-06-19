@@ -1,0 +1,33 @@
+meta {
+  name: BO generate monthly report
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/bo/v1/reports/generate/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "year": 2026,
+    "month": 5,
+    "staff_id": "{{staff_id}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Staff generate their own; admin may pass staff_id. Idempotent upsert per
+  (staff, year, month). The periodic worker generates the previous month on the
+  1st automatically.
+}

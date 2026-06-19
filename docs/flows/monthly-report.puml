@@ -1,0 +1,45 @@
+@startuml
+title Monthly report generation (scheduled) + BO view
+
+participant "Worker (Procrastinate)" as Worker
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+
+== Scheduled generation (1st of each month) ==
+Worker -> BE : periodic reports.generate_previous_month_reports
+note over Worker
+  Cron "0 2 1 * *" (UTC). Task body has no business logic —
+  delegates to the service layer (background-jobs.md).
+end note
+BE -> BE : for each staff: reports.services.generate_monthly_report(prev month)
+BE -> BE : analytics.selectors.compute_staff_monthly_metrics()
+note over BE
+  Reads appointments via the appointments selector layer (anti-corruption).
+  Metrics: hours worked, appts booked/made/canceled/no-show,
+  distinct + new clients, top-3 services, revenue (total & per service),
+  revenue per hour. Revenue uses the booking-time price snapshot (ADR 0001);
+  quote-only appointments contribute no revenue.
+end note
+BE -> DB : SELECT appointments (local month range)
+BE -> DB : UPSERT reports_monthly_report (unique staff+year+month)
+
+== View in BO ==
+Staff -> FE : open Reports
+FE -> NGINX : GET /bo/v1/reports/  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session; AuthZ: IsStaffMember
+  staff see only their own reports; admin may pass ?staff_id
+end note
+BE -> DB : SELECT reports_monthly_report
+BE --> FE : 200 (MonthlyReportSerializer[])
+FE --> Staff : monthly metrics
+
+note over Staff, DB
+  Staff/admin can also trigger generation on demand:
+  POST /bo/v1/reports/generate { year, month, staff_id? }
+end note
+@enduml
