@@ -1,0 +1,34 @@
+@startuml
+title Reschedule appointment
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> FE : pick a new time
+FE -> NGINX : POST /v1/appointments/{id}/reschedule  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session; AuthZ: role = client (ownership checked)
+  appointments.views.AppointmentRescheduleView
+  body: { new_start_at }
+end note
+BE -> BE : appointments.services.reschedule_appointment(by_client=true)
+note over BE
+  Business rules:
+  - appointment must be status=booked
+  - self-service blocked within 24h of current start_at
+  - keeps snapshot duration; new end_at = new_start_at + duration
+  - new_start_at: future, >= minimum_notice, <= horizon
+  - lock staff row (select_for_update)
+  - within schedule, no break/time-off, no overlap (excluding self)
+  - UPDATE in place; status STAYS booked (never a cancellation)
+end note
+BE -> DB : SELECT ... FOR UPDATE (staff row)
+BE -> DB : UPDATE appointment (start_at, end_at)
+BE -> BE : notifications.notify_waitlist_for_freed_time()  ' old time freed
+BE --> FE : 200 (AppointmentSerializer)
+FE --> Client : new time confirmed
+@enduml

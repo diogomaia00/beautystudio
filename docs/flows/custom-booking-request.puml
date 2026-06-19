@@ -1,0 +1,34 @@
+@startuml
+title Custom booking request (beyond the horizon)
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> FE : request a date beyond the booking horizon
+FE -> NGINX : POST /v1/availability/custom-requests  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session; AuthZ: role = client
+  availability.serializers.CustomRequestCreateSerializer
+  body: { service_id, preferred_date, preferred_time?, note }
+end note
+BE -> BE : availability.services.create_custom_request()
+note over BE
+  Business rules:
+  - NOT auto-confirmed (beyond booking_horizon_days)
+  - staff = service.staff handles it manually in the BO
+end note
+BE -> DB : INSERT availability_custom_request (status=pending)
+BE -> BE : notifications.notify_staff_custom_request()
+BE -> DB : INSERT notifications_bo_alert (custom_request)
+BE --> FE : 201 (CustomBookingRequestSerializer)
+FE --> Client : "request sent"
+
+note over BE, DB
+  Staff resolves it at /bo/v1/availability/staff/{id}/custom-requests/{rid}
+  (accepted / rejected / closed).
+end note
+@enduml

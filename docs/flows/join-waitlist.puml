@@ -1,0 +1,34 @@
+@startuml
+title Join waitlist for an occupied time
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> FE : "notify me" for an occupied time
+FE -> NGINX : POST /v1/availability/waitlist  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session; AuthZ: role = client
+  availability.serializers.WaitlistJoinSerializer
+  body: { service_id, desired_start_at, note }
+end note
+BE -> BE : availability.services.join_waitlist()
+note over BE
+  Business rules:
+  - desired_start_at must be in the future
+  - staff = service.staff (responsible staff member)
+  - creates Waitlist row (status=waiting)
+end note
+BE -> DB : INSERT availability_waitlist
+BE -> BE : notifications.notify_staff_waitlist_join()
+BE -> DB : INSERT notifications_bo_alert (waitlist_join)
+note right of BE
+  Staff sees the alert in the BO and contacts the client
+  outside the app to arrange a swap. No automatic offer in v1.
+end note
+BE --> FE : 201 (WaitlistSerializer)
+FE --> Client : "you're on the waitlist"
+@enduml

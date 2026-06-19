@@ -1,0 +1,61 @@
+@startuml
+title Create appointment (client booking)
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js client)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+participant "Worker (Procrastinate)" as Worker
+
+== Browse availability ==
+Client -> FE : pick staff + service + date
+FE -> NGINX : GET /v1/availability/slots?staff_id&service_id&date
+NGINX -> BE : proxy
+note over BE
+  availability.views.AvailableSlotsView (AllowAny)
+  availability.services.generate_slots()
+  - dynamic slots at booking_slot_minutes granularity
+  - minus breaks, time-off, existing appointments
+  - respects minimum_notice_hours
+  Slots are NEVER stored (database.md).
+end note
+BE -> DB : SELECT schedules / breaks / time-off / appointments
+BE --> FE : 200 {slots: [iso8601 UTC, ...]}
+
+== Book a slot ==
+Client -> FE : confirm booking (+ optional Nail Art)
+FE -> NGINX : POST /v1/appointments  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session cookie; AuthZ: role = client
+  appointments.serializers.AppointmentCreateSerializer
+end note
+BE -> BE : appointments.services.create_appointment()
+note over BE
+  Business rules (in order):
+  - client not blacklisted
+  - Nail Art only on nail services (+15 simple / +30 complex)
+  - duration = per-client override or service default (+ nail art)
+  - start_at: future, >= minimum_notice_hours, <= booking_horizon_days
+  - lock staff row (select_for_update) to serialize bookings
+  - idempotency_key short-circuit (return existing)
+  - within working schedule, no break, no time-off
+  - <= max_appointments_per_day / _per_week
+  - no overlapping booked appointment
+  - snapshot effective (discounted) price + duration (ADR 0001)
+end note
+BE -> DB : SELECT ... FOR UPDATE (staff row)
+BE -> DB : INSERT appointment (status=booked, auto-confirmed)
+BE -> Worker : enqueue notifications.send_appointment_confirmation (defer)
+BE --> FE : 201 Created (AppointmentSerializer)
+FE --> Client : confirmation UI
+
+== Confirmation (async) ==
+Worker -> BE : run send_appointment_confirmation(appointment_id)
+note over Worker
+  notifications.services.send_appointment_confirmation_now
+  - respects client's preferred channel (email/SMS)
+  - deduped via NotificationLog.dedup_key (idempotent)
+end note
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+title Cancel appointment
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> FE : cancel a booked appointment
+FE -> NGINX : POST /v1/appointments/{id}/cancel  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session; AuthZ: role = client
+  appointments.views.AppointmentCancelView
+  - ownership check (appointment.client == request.user)
+end note
+BE -> BE : appointments.services.cancel_appointment(reason=client)
+note over BE
+  Business rules:
+  - not already canceled / completed (made / no_show)
+  - self-cancel only up to 24h before start_at;
+    within 24h -> contact staff directly (rejected)
+  - sets status=canceled, cancel_reason=client
+  - reschedules are NOT cancellations (status stays booked)
+end note
+BE -> DB : UPDATE appointment (status=canceled, cancel_reason)
+BE -> BE : notifications.notify_waitlist_for_freed_time()
+note right of BE
+  If clients are waitlisted for that freed time,
+  a BO alert is created for the responsible staff member
+  (no automatic offer in v1 — business-rules.md).
+end note
+BE -> DB : SELECT availability_waitlist ; INSERT notifications_bo_alert
+BE --> FE : 200 (AppointmentSerializer, status=canceled)
+FE --> Client : cancellation confirmed
+
+note over Client, DB
+  Staff cancellation uses /bo/v1/appointments/{id}/cancel
+  (reason=staff) and is NOT bound by the 24h cutoff.
+end note
+@enduml

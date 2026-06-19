@@ -1,0 +1,30 @@
+meta {
+  name: Reschedule appointment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/v1/appointments/{{appointment_id}}/reschedule/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "new_start_at": "2026-07-06T11:00:00Z"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Moves the appointment in place (status stays booked). Self-service blocked
+  within 24h of the current start. Re-validates availability at the new time.
+}

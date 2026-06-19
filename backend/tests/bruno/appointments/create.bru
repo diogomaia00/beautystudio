@@ -1,0 +1,35 @@
+meta {
+  name: Create appointment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/v1/appointments/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "service_id": "{{service_id}}",
+    "start_at": "2026-07-06T09:00:00Z",
+    "nail_art_option": null,
+    "idempotency_key": "demo-key-1"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Client session + CSRF required. Full server-side conflict checks (schedule,
+  time-off, overlap, min-notice, horizon, blacklist, per-day/week limits).
+  Auto-confirmed within the booking horizon; price + duration are snapshotted.
+  Idempotent on idempotency_key.
+}
