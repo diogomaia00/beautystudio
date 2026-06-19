@@ -112,6 +112,11 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# Wall-clock timezone of the clinic. Timestamps are stored in UTC; staff
+# schedules use local clock times and are converted via this zone when
+# generating slots / displaying (see database.md timezone rules).
+CLINIC_TIMEZONE = config("CLINIC_TIMEZONE", default="Europe/Lisbon")
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

@@ -43,6 +43,32 @@ class OtpPurpose(models.TextChoices):
     SIGNUP = "signup", "Signup"
 
 
+class EducationType(models.TextChoices):
+    FORMATION = "formation", "Formation"
+    WEBINAR = "webinar", "Webinar"
+    COURSE = "course", "Course"
+    WORKSHOP = "workshop", "Workshop"
+    OTHER = "other", "Other"
+
+
+class WaitlistStatus(models.TextChoices):
+    WAITING = "waiting", "Waiting"
+    CONTACTED = "contacted", "Contacted"
+    CLOSED = "closed", "Closed"
+
+
+class CustomRequestStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    REJECTED = "rejected", "Rejected"
+    CLOSED = "closed", "Closed"
+
+
+class BoAlertType(models.TextChoices):
+    WAITLIST_JOIN = "waitlist_join", "Waitlist join"
+    CUSTOM_REQUEST = "custom_request", "Custom booking request"
+
+
 # ------------------------------------------------------------
 # SMS OTP login (see auth.md / ADR 0004)
 # ------------------------------------------------------------
