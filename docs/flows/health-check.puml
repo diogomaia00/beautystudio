@@ -1,0 +1,42 @@
+@startuml
+title Health checks (liveness & readiness)
+
+' Infra-level probes — no FE, no auth. Monitoring/orchestrator calls the backend.
+actor "Probe\n(orchestrator / monitor)" as Probe
+participant "NGINX" as NGINX
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+== Liveness ==
+Probe -> NGINX : GET /healthz/
+NGINX -> BE : proxy
+note over BE
+  apps.core.views.LivenessView
+  AuthN: none (AllowAny)
+  No external dependencies checked
+end note
+BE --> NGINX : 200 {"status": "ok"}
+NGINX --> Probe : 200
+
+== Readiness ==
+Probe -> NGINX : GET /readyz/
+NGINX -> BE : proxy
+note over BE
+  apps.core.views.ReadinessView
+  AuthN: none (AllowAny)
+end note
+BE -> DB : SELECT 1
+alt DB reachable
+  DB --> BE : ok
+  BE --> NGINX : 200 {"status": "ready", "database": true}
+else DB unreachable
+  BE --> NGINX : 503 {"status": "unavailable", "database": false}
+end
+NGINX --> Probe : 200 | 503
+
+note over Probe, DB
+  Correlation id: CorrelationIdMiddleware sets/echoes X-Request-ID
+  on every request and publishes it to structured logs.
+  The Docker backend healthcheck hits /healthz/ directly (bypasses NGINX).
+end note
+@enduml
