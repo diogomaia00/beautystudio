@@ -1,0 +1,88 @@
+@startuml
+title SMS OTP login (request → verify → session)
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+participant "Twilio" as SMS
+
+' Same flow serves the client app (/v1/auth) and the BO (/bo/v1/auth);
+' only authorization differs downstream (ADR 0002 & 0004).
+
+== Bootstrap CSRF ==
+Client -> FE : open login
+FE -> NGINX : GET /v1/auth/csrf/
+NGINX -> BE : proxy
+note over BE
+  users.views.CsrfView (@ensure_csrf_cookie)
+  AuthN: none (AllowAny)
+end note
+BE --> FE : 200 + Set-Cookie: csrftoken
+
+== Request code ==
+Client -> FE : submit msisdn
+FE -> NGINX : POST /v1/auth/otp/request
+NGINX -> BE : proxy
+note over BE
+  users.serializers.OtpRequestSerializer.validate (E.164)
+  Throttle: ScopedRateThrottle "otp" (per IP)
+end note
+BE -> BE : services.request_otp()
+note over BE
+  Business rules:
+  - per-msisdn rate limit (cooldown + hourly cap)
+  - login: account must exist and be active
+  - signup: no account may exist yet
+  - generate code, store only HMAC-SHA256 hash, TTL ~5 min
+end note
+BE -> DB : INSERT otp_code (code_hash, expires_at)
+BE -> SMS : send_sms(msisdn, code)
+note right of SMS
+  integrations.twilio.client.send_sms
+  Dev: logs the code when Twilio is unconfigured
+end note
+BE --> FE : 200 {"detail": "...code sent"}
+
+== Verify code & open session ==
+Client -> FE : submit code (+ profile fields on signup)
+FE -> NGINX : POST /v1/auth/otp/verify
+NGINX -> BE : proxy
+note over BE
+  users.serializers.OtpVerifySerializer.validate
+  (signup requires first/last name, email, birthday)
+end note
+BE -> BE : services.verify_otp()
+note over BE
+  Business rules (locked row):
+  - latest unconsumed code; not expired; attempts < cap
+  - constant-time hash compare; wrong code increments attempts (committed)
+  - on success mark consumed_at (single-use)
+  - login → return user; signup → create_client()
+end note
+BE -> DB : SELECT ... FOR UPDATE (otp_code)
+BE -> DB : UPDATE otp_code (attempts / consumed_at)
+alt signup
+  BE -> DB : INSERT users_user (role=client, unusable password)
+end
+BE -> BE : django.contrib.auth.login(user) — establish session
+BE -> DB : INSERT django_session
+BE --> FE : 200 (UserSerializer) + Set-Cookie: sessionid (HttpOnly)
+FE --> Client : logged in
+
+== Authenticated calls ==
+Client -> FE : use app
+FE -> NGINX : GET /v1/auth/me (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  users.views.CurrentUserView
+  AuthN: SessionAuthentication; permission IsAuthenticated
+end note
+BE --> FE : 200 (current user)
+
+note over Client, DB
+  Logout: POST /v1/auth/logout (IsAuthenticated) — sends X-CSRFToken,
+  clears the server-side session for instant revocation.
+end note
+@enduml

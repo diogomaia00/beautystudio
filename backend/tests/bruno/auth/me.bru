@@ -1,0 +1,20 @@
+meta {
+  name: Current user
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/v1/auth/me/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.msisdn: eq {{msisdn}}
+}
+
+docs {
+  Requires the session cookie set by otp-verify. Returns 403 when anonymous.
+}

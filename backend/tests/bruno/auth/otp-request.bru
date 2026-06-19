@@ -1,0 +1,27 @@
+meta {
+  name: OTP request
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/v1/auth/otp/request/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "msisdn": "{{msisdn}}",
+    "purpose": "login"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Sends an SMS one-time code. With Twilio unconfigured (local dev), the code is
+  logged by the backend instead of sent — copy it into the verify request.
+}

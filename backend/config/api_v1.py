@@ -4,8 +4,11 @@ Domain routes (appointments, services, availability, …) are wired here as each
 app's client-facing endpoints come online in later phases.
 """
 
-from django.urls import path  # noqa: F401
+from django.urls import include, path
 
 app_name = "v1"
 
-urlpatterns: list = []
+urlpatterns = [
+    # Authentication (SMS OTP login/sign-up, session, logout) — see auth.md.
+    path("auth/", include("apps.users.urls")),
+]

@@ -1,0 +1,29 @@
+meta {
+  name: OTP verify
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/v1/auth/otp/verify/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "msisdn": "{{msisdn}}",
+    "code": "123456",
+    "purpose": "login"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Verifies the code and establishes the session cookie. Replace `code` with the
+  value from the otp-request step. For sign-up, set purpose to "signup" and add
+  first_name, last_name, email, birthday.
+}

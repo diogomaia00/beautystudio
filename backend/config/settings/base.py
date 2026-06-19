@@ -92,6 +92,11 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "common.utils.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Per-IP throttle for the SMS OTP endpoints; per-msisdn limits are enforced
+    # in the service layer (see apps/users/services.py).
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": "10/min",
+    },
 }
 
 SPECTACULAR_SETTINGS = {

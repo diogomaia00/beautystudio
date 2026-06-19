@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class SystemSettings(models.Model):
@@ -16,7 +17,10 @@ class SystemSettings(models.Model):
     max_appointments_per_week = models.PositiveIntegerField(default=3)
     max_appointments_per_batch = models.PositiveIntegerField(default=3)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    # default (not auto_now_add) so the value is populated on instantiation; the
+    # singleton's forced pk=1 save() takes the UPDATE path, where auto_now_add
+    # would leave created_at unset (NULL) and violate the NOT NULL constraint.
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

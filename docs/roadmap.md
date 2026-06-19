@@ -39,11 +39,11 @@ Update each task's **Status** as work progresses.
 
 | #   | Status | Task |
 |-----|--------|------|
-| 2.1 | pending | Custom user model + roles (admin / staff / client); `msisdn` login identifier |
-| 2.2 | pending | Session auth (DRF `SessionAuthentication`, cookie-based) for both surfaces; CSRF; DB-backed sessions |
-| 2.2b | pending | SMS OTP login (all roles): `otp_code` table, request/verify endpoints, Twilio send, hashed codes + TTL + rate-limit; session on success |
-| 2.3 | pending | Enable Django `/admin/` (password-based) for the admin superuser; app login stays OTP |
-| 2.4 | pending | Role/permission-based access control (DRF permissions in `common/`) |
+| 2.1 | developed | Custom user model + roles (admin / staff / client); `msisdn` login identifier |
+| 2.2 | developed | Session auth (DRF `SessionAuthentication`, cookie-based) for both surfaces; CSRF; DB-backed sessions |
+| 2.2b | developed | SMS OTP login (all roles): `otp_code` table, request/verify endpoints, Twilio send, hashed codes + TTL + rate-limit; session on success |
+| 2.3 | developed | Enable Django `/admin/` (password-based) for the admin superuser; app login stays OTP |
+| 2.4 | developed | Role/permission-based access control (DRF permissions in `common/`) |
 
 ## Phase 3 — Domain apps (see `backend.md`, `ddd.md`, `business-rules.md`)
 

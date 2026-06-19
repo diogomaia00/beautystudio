@@ -4,8 +4,12 @@ Staff/admin routes (services & pricing, schedules, clients, reports, …) are wi
 here as each app's back-office endpoints come online in later phases.
 """
 
-from django.urls import path  # noqa: F401
+from django.urls import include, path
 
 app_name = "bo_v1"
 
-urlpatterns: list = []
+urlpatterns = [
+    # Authentication — same SMS OTP flow as the client app (ADR 0004); staff and
+    # admin log in here. Authorization is role-based downstream.
+    path("auth/", include("apps.users.urls")),
+]

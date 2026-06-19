@@ -1,1 +1,65 @@
+from django.core.validators import RegexValidator
 from rest_framework import serializers
+
+from common.constants import OTP_CODE_LENGTH, OtpPurpose
+
+# E.164: optional leading +, leading non-zero digit, 7–15 digits total.
+msisdn_validator = RegexValidator(
+    regex=r"^\+?[1-9]\d{6,14}$",
+    message="Enter a valid phone number in international (E.164) format.",
+)
+
+
+class UserSerializer(serializers.Serializer):
+    """Public representation of the authenticated user (for /auth/me)."""
+
+    id = serializers.UUIDField(read_only=True)
+    msisdn = serializers.CharField(read_only=True)
+    role = serializers.CharField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    preferred_channel = serializers.CharField(read_only=True)
+
+
+class OtpRequestSerializer(serializers.Serializer):
+    msisdn = serializers.CharField(validators=[msisdn_validator])
+    purpose = serializers.ChoiceField(
+        choices=OtpPurpose.choices,
+        default=OtpPurpose.LOGIN,
+    )
+
+
+class OtpVerifySerializer(serializers.Serializer):
+    msisdn = serializers.CharField(validators=[msisdn_validator])
+    code = serializers.CharField(min_length=OTP_CODE_LENGTH, max_length=OTP_CODE_LENGTH)
+    purpose = serializers.ChoiceField(
+        choices=OtpPurpose.choices,
+        default=OtpPurpose.LOGIN,
+    )
+    # Required only for signup — the verified number becomes a new account.
+    first_name = serializers.CharField(required=False, allow_blank=False)
+    last_name = serializers.CharField(required=False, allow_blank=False)
+    email = serializers.EmailField(required=False)
+    birthday = serializers.DateField(required=False)
+
+    def validate(self, attrs):
+        if attrs["purpose"] == OtpPurpose.SIGNUP:
+            missing = [
+                field
+                for field in ("first_name", "last_name", "email", "birthday")
+                if not attrs.get(field)
+            ]
+            if missing:
+                raise serializers.ValidationError(
+                    {field: "This field is required for sign-up." for field in missing}
+                )
+        return attrs
+
+    def signup_data(self) -> dict:
+        return {
+            "first_name": self.validated_data["first_name"],
+            "last_name": self.validated_data["last_name"],
+            "email": self.validated_data["email"],
+            "birthday": self.validated_data["birthday"],
+        }
