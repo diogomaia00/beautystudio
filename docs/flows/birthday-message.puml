@@ -1,0 +1,24 @@
+@startuml
+title Birthday message (scheduled, SMS)
+
+participant "Worker (Procrastinate)" as Worker
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+participant "Twilio / Email" as Channel
+
+Worker -> BE : periodic notifications.send_birthday_messages
+note over Worker
+  Cron "0 10 * * *" (UTC). Idempotent task body — delegates to services.
+end note
+BE -> BE : users.selectors.list_clients_with_birthday(month, day)
+BE -> DB : SELECT active clients whose birthday is today (local)
+loop each client
+  BE -> BE : notifications.services.send_birthday_message_now(year)
+  note over BE
+    - on behalf of the Beauty Studio team
+    - respects preferred channel; dedup_key "birthday:{id}:{year}"
+  end note
+  BE -> Channel : send greeting
+  BE -> DB : INSERT notifications_log
+end
+@enduml

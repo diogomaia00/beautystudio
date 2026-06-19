@@ -1,0 +1,25 @@
+@startuml
+title Appointment reminder (scheduled, ~24h before)
+
+participant "Worker (Procrastinate)" as Worker
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+participant "Twilio / Email" as Channel
+
+Worker -> BE : periodic notifications.send_due_reminders
+note over Worker
+  Cron "0 9 * * *" (UTC). Idempotent task body — delegates to services.
+end note
+BE -> BE : appointments.selectors.list_booked_appointments_on_local_date(tomorrow)
+BE -> DB : SELECT booked appointments for the next local day
+loop each appointment
+  BE -> BE : notifications.services.send_appointment_reminder_now()
+  note over BE
+    - respects client's preferred channel (email/SMS)
+    - dedup_key "reminder:{id}" -> no double send on retry
+    - message: day/hour, service, value (price snapshot)
+  end note
+  BE -> Channel : send (SMS via Twilio, or email)
+  BE -> DB : INSERT notifications_log (status, dedup_key)
+end
+@enduml
