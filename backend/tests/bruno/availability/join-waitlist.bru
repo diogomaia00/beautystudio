@@ -1,0 +1,32 @@
+meta {
+  name: Join waitlist
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/v1/availability/waitlist/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "service_id": "{{service_id}}",
+    "desired_start_at": "2026-07-06T09:00:00Z",
+    "note": "preferred morning"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Requires a client session + CSRF token. Creates a waitlist entry and a BO
+  alert for the responsible staff member.
+}

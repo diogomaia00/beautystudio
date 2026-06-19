@@ -1,0 +1,27 @@
+meta {
+  name: Available slots
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/v1/availability/slots/?staff_id={{staff_id}}&service_id={{service_id}}&date={{slot_date}}
+  body: none
+  auth: none
+}
+
+params:query {
+  staff_id: {{staff_id}}
+  service_id: {{service_id}}
+  date: {{slot_date}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Dynamically generated bookable start times (UTC) for a staff + service + date.
+  Server-side source of truth; slots are never stored. Optional nail_art query
+  param (simple/complex) extends the duration used to fit slots.
+}
