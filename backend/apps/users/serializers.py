@@ -1,7 +1,9 @@
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from common.constants import OTP_CODE_LENGTH, OtpPurpose
+from common.constants import OTP_CODE_LENGTH, EducationType, NotificationChannel, OtpPurpose
+
+from .models import ClientServiceDuration, StaffEducation
 
 # E.164: optional leading +, leading non-zero digit, 7–15 digits total.
 msisdn_validator = RegexValidator(
@@ -63,3 +65,87 @@ class OtpVerifySerializer(serializers.Serializer):
             "email": self.validated_data["email"],
             "birthday": self.validated_data["birthday"],
         }
+
+
+# ------------------------------------------------------------
+# Client profile (self-service)
+# ------------------------------------------------------------
+
+class ClientProfileUpdateSerializer(serializers.Serializer):
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
+    birthday = serializers.DateField(required=False)
+    preferred_channel = serializers.ChoiceField(
+        choices=NotificationChannel.choices, required=False
+    )
+
+
+# ------------------------------------------------------------
+# Staff education (public + BO)
+# ------------------------------------------------------------
+
+class StaffEducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StaffEducation
+        fields = [
+            "id",
+            "education_type",
+            "provider",
+            "title",
+            "completed_on",
+            "description",
+        ]
+
+
+class StaffEducationWriteSerializer(serializers.Serializer):
+    education_type = serializers.ChoiceField(
+        choices=EducationType.choices, default=EducationType.FORMATION
+    )
+    provider = serializers.CharField(max_length=255)
+    title = serializers.CharField(max_length=255)
+    completed_on = serializers.DateField()
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class StaffPublicSerializer(serializers.Serializer):
+    """Public staff page representation (experience-facing)."""
+
+    id = serializers.UUIDField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    educations = StaffEducationSerializer(many=True, read_only=True)
+
+
+# ------------------------------------------------------------
+# BO client management
+# ------------------------------------------------------------
+
+class ClientSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    msisdn = serializers.CharField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    birthday = serializers.DateField(read_only=True)
+    preferred_channel = serializers.CharField(read_only=True)
+    blacklisted = serializers.BooleanField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+
+
+class BlacklistSerializer(serializers.Serializer):
+    blacklisted = serializers.BooleanField()
+
+
+class ClientServiceDurationSerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField(source="service.name", read_only=True)
+
+    class Meta:
+        model = ClientServiceDuration
+        fields = ["id", "service", "service_name", "duration_minutes"]
+        read_only_fields = ["id", "service_name"]
+
+
+class ClientServiceDurationWriteSerializer(serializers.Serializer):
+    service_id = serializers.UUIDField()
+    duration_minutes = serializers.IntegerField(min_value=1)

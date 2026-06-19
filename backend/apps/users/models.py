@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
 
-from common.constants import NotificationChannel, OtpPurpose, UserRole
+from common.constants import EducationType, NotificationChannel, OtpPurpose, UserRole
 
 
 class UserManager(BaseUserManager):
@@ -121,3 +121,74 @@ class OtpCode(models.Model):
     @property
     def is_consumed(self) -> bool:
         return self.consumed_at is not None
+
+
+class StaffEducation(models.Model):
+    """A formation/course/webinar a staff member completed.
+
+    Shown on the public staff page so clients can see their experience
+    (see business-rules.md). Managed by the staff member and admin in the BO.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    staff = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="educations",
+    )
+    education_type = models.CharField(
+        max_length=20,
+        choices=EducationType.choices,
+        default=EducationType.FORMATION,
+    )
+    provider = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+    completed_on = models.DateField()
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "users_staff_education"
+        ordering = ["-completed_on"]
+        indexes = [
+            models.Index(fields=["staff", "completed_on"], name="education_staff_date_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.provider})"
+
+
+class ClientServiceDuration(models.Model):
+    """Per-client duration override (in minutes) for a specific service.
+
+    Reflects the time typically spent with that client; used when computing
+    ``end_at`` at booking time. Falls back to the service default when absent
+    (see business-rules.md). Managed by staff in the BO client profile.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="service_durations",
+    )
+    service = models.ForeignKey(
+        "services.Service",
+        on_delete=models.CASCADE,
+        related_name="client_durations",
+    )
+    duration_minutes = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "users_client_service_duration"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client", "service"], name="uniq_client_service_duration"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.client_id}/{self.service_id} = {self.duration_minutes}m"

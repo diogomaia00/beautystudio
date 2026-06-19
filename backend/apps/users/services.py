@@ -20,7 +20,7 @@ from common.constants import (
 from integrations.twilio.client import send_sms
 
 from . import selectors
-from .models import OtpCode, User
+from .models import ClientServiceDuration, OtpCode, StaffEducation, User
 
 
 # ------------------------------------------------------------
@@ -68,6 +68,110 @@ def create_client(*, msisdn: str, **profile_fields) -> User:
         is_active=True,
         **profile_fields,
     )
+
+
+# ------------------------------------------------------------
+# Client profile (self-service)
+# ------------------------------------------------------------
+
+# Fields a client may update about themselves. msisdn (login identifier) is not
+# self-editable; role/blacklist are staff-controlled.
+CLIENT_SELF_EDITABLE = {"first_name", "last_name", "email", "birthday", "preferred_channel"}
+
+
+@transaction.atomic
+def update_client_profile(*, client: User, **fields) -> User:
+    """Update the calling client's own profile (restricted field set)."""
+    disallowed = set(fields) - CLIENT_SELF_EDITABLE
+    if disallowed:
+        raise ValidationError(
+            {field: "This field cannot be changed here." for field in disallowed}
+        )
+    for field, value in fields.items():
+        setattr(client, field, value)
+    client.full_clean(exclude=["password"])
+    client.save()
+    return client
+
+
+# ------------------------------------------------------------
+# Blacklist (staff-managed — see business-rules.md)
+# ------------------------------------------------------------
+
+@transaction.atomic
+def set_blacklisted(*, client: User, blacklisted: bool) -> User:
+    """Set/clear a client's blacklist flag. Only staff call this (gated in views)."""
+    if client.role != UserRole.CLIENT:
+        raise ValidationError("Only clients can be blacklisted.")
+    client.blacklisted = blacklisted
+    client.save(update_fields=["blacklisted", "updated_at"])
+    return client
+
+
+# ------------------------------------------------------------
+# Per-client duration override
+# ------------------------------------------------------------
+
+@transaction.atomic
+def set_client_service_duration(*, client: User, service, duration_minutes: int) -> ClientServiceDuration:
+    if duration_minutes <= 0:
+        raise ValidationError("Duration must be a positive number of minutes.")
+    if client.role != UserRole.CLIENT:
+        raise ValidationError("Duration overrides apply to clients only.")
+    obj, _ = ClientServiceDuration.objects.update_or_create(
+        client=client,
+        service=service,
+        defaults={"duration_minutes": duration_minutes},
+    )
+    return obj
+
+
+@transaction.atomic
+def clear_client_service_duration(*, client: User, service) -> None:
+    ClientServiceDuration.objects.filter(client=client, service=service).delete()
+
+
+# ------------------------------------------------------------
+# Staff education (BO — see business-rules.md)
+# ------------------------------------------------------------
+
+@transaction.atomic
+def create_staff_education(
+    *,
+    staff: User,
+    education_type: str,
+    provider: str,
+    title: str,
+    completed_on,
+    description: str = "",
+) -> StaffEducation:
+    if staff.role != UserRole.STAFF:
+        raise ValidationError("Education records belong to staff members.")
+    education = StaffEducation(
+        staff=staff,
+        education_type=education_type,
+        provider=provider,
+        title=title,
+        completed_on=completed_on,
+        description=description,
+    )
+    education.full_clean()
+    education.save()
+    return education
+
+
+@transaction.atomic
+def update_staff_education(*, education: StaffEducation, **fields) -> StaffEducation:
+    for field, value in fields.items():
+        setattr(education, field, value)
+    education.full_clean()
+    education.save()
+    return education
+
+
+@transaction.atomic
+def delete_staff_education(*, education: StaffEducation) -> None:
+    education.delete()
 
 
 # ------------------------------------------------------------
