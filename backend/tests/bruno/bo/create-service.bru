@@ -1,0 +1,37 @@
+meta {
+  name: BO create service
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/bo/v1/services/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "category_id": "{{service_id}}",
+    "staff_id": "{{staff_id}}",
+    "name": "Manicure",
+    "duration_minutes": 60,
+    "price": "20.00",
+    "is_quote_only": false,
+    "is_nail_service": true,
+    "is_active": true
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Staff/admin session required. Replace category_id with a real category id.
+  Price/quote-only invariant is enforced server-side.
+}

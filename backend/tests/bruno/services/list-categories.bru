@@ -1,0 +1,19 @@
+meta {
+  name: List service categories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/v1/services/categories/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Public catalog — service categories ordered for display.
+}

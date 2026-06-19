@@ -1,0 +1,19 @@
+meta {
+  name: BO list clients
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/bo/v1/clients/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Staff/admin session required. Optional ?search= filters by msisdn.
+}

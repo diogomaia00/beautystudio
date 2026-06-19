@@ -1,0 +1,33 @@
+meta {
+  name: BO set weekly schedule
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{base_url}}/bo/v1/availability/staff/{{staff_id}}/schedule/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "entries": [
+      { "weekday": 2, "start_time": "09:00", "end_time": "18:00" },
+      { "weekday": 3, "start_time": "09:00", "end_time": "18:00" }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Replaces the staff member's full weekly schedule. weekday uses the clinic
+  encoding 1=Sun … 7=Sat (database.md).
+}

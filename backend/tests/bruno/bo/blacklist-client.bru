@@ -1,0 +1,29 @@
+meta {
+  name: BO blacklist client
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/bo/v1/clients/{{client_id}}/blacklist/
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRFToken: {{csrf_token}}
+}
+
+body:json {
+  {
+    "blacklisted": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Staff-only. A blacklisted client cannot book through the app.
+}

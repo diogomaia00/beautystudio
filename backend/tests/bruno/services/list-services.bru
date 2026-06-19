@@ -1,0 +1,24 @@
+meta {
+  name: List services
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/v1/services/?staff_id={{staff_id}}
+  body: none
+  auth: none
+}
+
+params:query {
+  staff_id: {{staff_id}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Public catalog — active services, filterable by category_id / staff_id.
+  Each item includes the effective (possibly discounted) price.
+}
