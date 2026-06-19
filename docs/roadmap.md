@@ -49,29 +49,29 @@ Update each task's **Status** as work progresses.
 
 | #   | Status | Task |
 |-----|--------|------|
-| 3.1 | pending | `users`: client self sign-up (first/last name, birthday, email, msisdn — all required); login identifier = msisdn; profile + preferred channel; per-client duration override (minutes) |
-| 3.1c | pending | `users`/`staff`: staff_education table (type/provider/date/description) + CRUD |
-| 3.1b | pending | `users`: client `blacklisted` flag (BOOLEAN, default false) + attendance history (derived from appointment status) |
-| 3.2 | pending | `services`: categories; service → one staff; price + `duration_minutes` in DB |
-| 3.2b | pending | `services`: service_discount (seasonal %); effective price flows into appointment snapshot |
-| 3.3 | pending | `services`: `is_quote_only` (nullable price) for "price on request" |
-| 3.4 | pending | `services`: `seed_prices` migration/command from `prices_joao.py` / `prices_tiz.py` |
-| 3.5 | pending | `availability`: per-staff weekly schedule (`staff_schedules`, `TIME` start/end per weekday) |
-| 3.6 | pending | `availability`: time-off / holiday blocking (`staff_time_off`, `TIMESTAMPTZ` ranges) |
-| 3.7 | pending | `availability`: daily break windows (non-bookable) |
-| 3.8 | pending | `availability`: **dynamic** slot generation (granularity `booking_slot_minutes`) from schedule minus time-off, breaks, and existing appointments — never stored |
-| 3.9 | pending | `availability`: waitlist on occupied times + custom booking requests (beyond `booking_horizon_days`) |
-| 3.10 | pending | `appointments`: booking creation as `start_at`/`end_at` (UTC `TIMESTAMPTZ`); `transaction.atomic` + `select_for_update` + idempotency; server-side conflict checks (schedule, time-off, overlap, min-notice, horizon, **blacklist**) |
-| 3.11 | pending | `appointments`: per-day (3) and per-week (3) limits; batches (≤3) |
-| 3.12 | pending | `appointments`: lifecycle booked / made / canceled / no-show; auto-confirm within booking horizon |
-| 3.13 | pending | `appointments`: price + `duration_minutes` snapshot at booking time |
-| 3.14 | pending | `appointments`: Nail Art add-on minutes (+15 simple / +30 complex, extending `end_at`); client lock + edit modal; staff-only edits |
-| 3.15 | pending | `appointments`: self cancel/reschedule up to 24h before; free that time → notify waitlist |
-| 3.16 | pending | `notifications`: email + SMS (Twilio); respect preferred channel; BO alerts (waitlist, custom requests) |
-| 3.17 | pending | `notifications`: appointment reminder task (~24h before) via Procrastinate periodic task |
-| 3.18 | pending | `notifications`: birthday SMS task |
-| 3.19 | pending | `analytics`: aggregations feeding reports |
-| 3.20 | pending | `reports`: monthly report generation (hours, appts booked/made/canceled, clients, top-3 services, revenue, revenue/hour) |
+| 3.1 | developed | `users`: client self sign-up (first/last name, birthday, email, msisdn — all required); login identifier = msisdn; profile + preferred channel; per-client duration override (minutes) |
+| 3.1c | developed | `users`/`staff`: staff_education table (type/provider/date/description) + CRUD |
+| 3.1b | developed | `users`: client `blacklisted` flag (BOOLEAN, default false) + attendance history (derived from appointment status) |
+| 3.2 | developed | `services`: categories; service → one staff; price + `duration_minutes` in DB |
+| 3.2b | developed | `services`: service_discount (seasonal %); effective price flows into appointment snapshot |
+| 3.3 | developed | `services`: `is_quote_only` (nullable price) for "price on request" |
+| 3.4 | developed | `services`: `seed_prices` migration/command from `prices_joao.py` / `prices_tiz.py` |
+| 3.5 | developed | `availability`: per-staff weekly schedule (`staff_schedules`, `TIME` start/end per weekday) |
+| 3.6 | developed | `availability`: time-off / holiday blocking (`staff_time_off`, `TIMESTAMPTZ` ranges) |
+| 3.7 | developed | `availability`: daily break windows (non-bookable) |
+| 3.8 | developed | `availability`: **dynamic** slot generation (granularity `booking_slot_minutes`) from schedule minus time-off, breaks, and existing appointments — never stored |
+| 3.9 | developed | `availability`: waitlist on occupied times + custom booking requests (beyond `booking_horizon_days`) |
+| 3.10 | developed | `appointments`: booking creation as `start_at`/`end_at` (UTC `TIMESTAMPTZ`); `transaction.atomic` + `select_for_update` + idempotency; server-side conflict checks (schedule, time-off, overlap, min-notice, horizon, **blacklist**) |
+| 3.11 | developed | `appointments`: per-day (3) and per-week (3) limits; batches (≤3) |
+| 3.12 | developed | `appointments`: lifecycle booked / made / canceled / no-show; auto-confirm within booking horizon |
+| 3.13 | developed | `appointments`: price + `duration_minutes` snapshot at booking time |
+| 3.14 | developed | `appointments`: Nail Art add-on minutes (+15 simple / +30 complex, extending `end_at`); client lock + edit modal; staff-only edits |
+| 3.15 | developed | `appointments`: self cancel/reschedule up to 24h before; free that time → notify waitlist |
+| 3.16 | developed | `notifications`: email + SMS (Twilio); respect preferred channel; BO alerts (waitlist, custom requests) |
+| 3.17 | developed | `notifications`: appointment reminder task (~24h before) via Procrastinate periodic task |
+| 3.18 | developed | `notifications`: birthday SMS task |
+| 3.19 | developed | `analytics`: aggregations feeding reports |
+| 3.20 | developed | `reports`: monthly report generation (hours, appts booked/made/canceled, clients, top-3 services, revenue, revenue/hour) |
 
 ## Phase 4 — Client app frontend (see `frontend.md`)
 
