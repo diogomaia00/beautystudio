@@ -18,6 +18,8 @@
 These are the only Django apps for v1. Do not add, rename, or split apps
 without updating this list first.
 
+- `core` — cross-cutting **infrastructure**, not a domain context: system
+  settings (singleton), health probes, request-id middleware. See ADR 0006.
 - `users`
 - `services`
 - `appointments`
@@ -46,11 +48,14 @@ backend/
 │   │   ├── dev.py           # local/dev overrides
 │   │   └── prod.py          # production overrides
 │   ├── urls.py              # root URL conf
-│   ├── procrastinate.py     # Procrastinate app definition
+│   ├── procrastinate.py     # Procrastinate on_app_ready hook (app is auto-configured)
+│   ├── api_v1.py            # client API aggregation (/v1/)
+│   ├── api_bo_v1.py         # back office API aggregation (/bo/v1/)
 │   ├── asgi.py
 │   └── wsgi.py
 │
 ├── apps/
+│   ├── core/                # infrastructure: settings, health, request-id (ADR 0006)
 │   ├── users/
 │   ├── services/
 │   ├── appointments/

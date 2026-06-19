@@ -25,15 +25,15 @@ Update each task's **Status** as work progresses.
 
 | #   | Status | Task |
 |-----|--------|------|
-| 1.1 | pending | Django project bootstrap with split settings (`config/settings/{base,dev,prod}.py`) |
-| 1.2 | pending | DRF setup: versioned API bases (client `/v1/`, BO `/bo/v1/`), pagination, consistent error envelope |
-| 1.3 | pending | `common/` shared modules (permissions, pagination, utils, constants) |
-| 1.4 | pending | Procrastinate app (`config/procrastinate.py`) + worker & periodic-task wiring |
-| 1.5 | pending | Structured logging with request correlation ID |
-| 1.6 | pending | Health-check endpoint(s) |
-| 1.7 | pending | OpenAPI schema + docs generation |
-| 1.8 | pending | `system_settings`: `booking_slot_minutes` (15), `booking_horizon_days` (60), `minimum_notice_hours` (2), `max_appointments_per_day/week/batch` (3) |
-| 1.9 | pending | Bruno API collection (`.bru`) under `backend/tests/bruno/`, kept in sync with endpoints |
+| 1.1 | developed | Django project bootstrap with split settings (`config/settings/{base,dev,prod}.py`) |
+| 1.2 | developed | DRF setup: versioned API bases (client `/v1/`, BO `/bo/v1/`), pagination, consistent error envelope |
+| 1.3 | developed | `common/` shared modules (permissions, pagination, utils, constants) |
+| 1.4 | developed | Procrastinate app (`config/procrastinate.py`) + worker & periodic-task wiring |
+| 1.5 | developed | Structured logging with request correlation ID |
+| 1.6 | developed | Health-check endpoint(s) |
+| 1.7 | developed | OpenAPI schema + docs generation |
+| 1.8 | developed | `system_settings`: `booking_slot_minutes` (15), `booking_horizon_days` (60), `minimum_notice_hours` (2), `max_appointments_per_day/week/batch` (3) |
+| 1.9 | developed | Bruno API collection (`.bru`) under `backend/tests/bruno/`, kept in sync with endpoints |
 
 ## Phase 2 — Auth (see `auth.md`)
 

@@ -26,6 +26,11 @@ Each app owns a slice of the domain and its data. Apps must stay decoupled.
 - `analytics` — aggregated metrics that feed reporting.
 - `reports` — monthly report generation for staff in the BO.
 
+> Besides these bounded contexts there is one **infrastructure** app, `core`,
+> which is *not* a domain context: it holds cross-cutting concerns (the
+> `system_settings` singleton, health probes, request-id middleware). Domain apps
+> read settings through `core`'s selectors, never its models. See ADR 0006.
+
 > An app owns its models. Other apps never import those models directly — they call the owning app's `services`/`selectors` (anti-corruption boundary).
 
 > **Pricing data is DB-owned.** Service prices/durations are configured in the

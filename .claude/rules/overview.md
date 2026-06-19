@@ -58,6 +58,9 @@ beautystudio/
 Backend apps (see `backend.md` for the authoritative list):
 `users`, `services`, `appointments`, `availability`, `notifications`, `analytics`, `reports`.
 
+Plus an infrastructure app `core` (system settings, health probes, request-id
+middleware) — not a domain context; see `docs/adr/0006-core-app-for-cross-cutting-config.md`.
+
 Roadmap (not in v1): online `payments` (MBWay), WhatsApp notifications.
 
 ## SCAFFOLD DELIVERABLES
