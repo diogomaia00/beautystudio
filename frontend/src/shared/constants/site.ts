@@ -21,6 +21,6 @@ export const NAV_LINKS: NavLink[] = [
 
 export const CLINIC = {
   name: "Beauty Studio",
-  /** Mirrors system_settings.location. */
-  location: "Rua Vila Vieira 17, 3060-008 Ançã",
+  /** Mirrors DB system_settings.location. */
+  location: "Rua Vila Vieira 17, Ançã",
 } as const;

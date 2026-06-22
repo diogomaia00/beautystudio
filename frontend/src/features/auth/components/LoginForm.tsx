@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import Button from "@/components/ui/Button";
 import Field from "@/components/ui/Field";
@@ -12,6 +12,7 @@ import { apiErrorMessage } from "@/lib/api";
 
 import { useRequestOtp, useVerifyOtp } from "../hooks/useAuthActions";
 import { MSISDN_PATTERN, OTP_PATTERN } from "../validation";
+import PhoneField from "./PhoneField";
 import styles from "./AuthForm.module.css";
 
 interface PhoneValues {
@@ -27,7 +28,7 @@ export default function LoginForm() {
   const [msisdn, setMsisdn] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const phoneForm = useForm<PhoneValues>();
+  const phoneForm = useForm<PhoneValues>({ defaultValues: { msisdn: "" } });
   const codeForm = useForm<CodeValues>();
   const requestOtp = useRequestOtp();
   const verifyOtp = useVerifyOtp();
@@ -71,20 +72,26 @@ export default function LoginForm() {
           <Field
             label="Telemóvel"
             htmlFor="msisdn"
-            hint="Formato internacional, ex. +351912345678"
+            hint="Escolhe o país e escreve o número, ex. 912345678"
             error={phoneForm.formState.errors.msisdn?.message}
           >
-            <Input
-              id="msisdn"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="+351912345678"
-              invalid={!!phoneForm.formState.errors.msisdn}
-              {...phoneForm.register("msisdn", {
+            <Controller
+              control={phoneForm.control}
+              name="msisdn"
+              defaultValue=""
+              rules={{
                 required: "Indica o teu telemóvel.",
                 pattern: { value: MSISDN_PATTERN, message: "Número inválido." },
-              })}
+              }}
+              render={({ field, fieldState }) => (
+                <PhoneField
+                  id="msisdn"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  invalid={!!fieldState.error}
+                />
+              )}
             />
           </Field>
           <div className={styles.actions}>
@@ -95,6 +102,9 @@ export default function LoginForm() {
         </form>
       ) : (
         <form className={styles.form} onSubmit={submitCode} noValidate>
+          <Field label="Telemóvel" htmlFor="msisdn-sent">
+            <Input id="msisdn-sent" type="tel" value={msisdn} readOnly disabled />
+          </Field>
           <Field
             label="Código"
             htmlFor="code"
@@ -108,6 +118,7 @@ export default function LoginForm() {
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
+              autoFocus
               invalid={!!codeForm.formState.errors.code}
               {...codeForm.register("code", {
                 required: "Introduz o código.",
@@ -125,6 +136,7 @@ export default function LoginForm() {
               onClick={() => {
                 setStep("phone");
                 setFormError(null);
+                codeForm.reset();
               }}
             >
               Usar outro número

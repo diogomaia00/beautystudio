@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import Button from "@/components/ui/Button";
 import Field from "@/components/ui/Field";
@@ -12,7 +12,8 @@ import { apiErrorMessage } from "@/lib/api";
 
 import { useRequestOtp, useVerifyOtp } from "../hooks/useAuthActions";
 import type { SignupData } from "../types";
-import { MSISDN_PATTERN, OTP_PATTERN } from "../validation";
+import { MSISDN_PATTERN, OTP_PATTERN, todayISO, validateBirthday } from "../validation";
+import PhoneField from "./PhoneField";
 import styles from "./AuthForm.module.css";
 
 interface DetailsValues extends SignupData {
@@ -28,7 +29,11 @@ export default function RegisterForm() {
   const [details, setDetails] = useState<DetailsValues | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const detailsForm = useForm<DetailsValues>();
+  // Real-time validation (e.g. birthday) so errors show as the user fills in.
+  const detailsForm = useForm<DetailsValues>({
+    mode: "onChange",
+    defaultValues: { msisdn: "" },
+  });
   const codeForm = useForm<CodeValues>();
   const requestOtp = useRequestOtp();
   const verifyOtp = useVerifyOtp();
@@ -107,31 +112,46 @@ export default function RegisterForm() {
               })}
             />
           </Field>
-          <Field label="Data de nascimento" htmlFor="birthday" error={errors.birthday?.message}>
+          <Field
+            label="Data de nascimento"
+            htmlFor="birthday"
+            hint="Tens de ter pelo menos 12 anos."
+            error={errors.birthday?.message}
+          >
             <Input
               id="birthday"
               type="date"
+              max={todayISO()}
               invalid={!!errors.birthday}
-              {...detailsForm.register("birthday", { required: "Indica a tua data de nascimento." })}
+              {...detailsForm.register("birthday", {
+                required: "Indica a tua data de nascimento.",
+                validate: validateBirthday,
+              })}
             />
           </Field>
           <Field
             label="Telemóvel"
             htmlFor="msisdn"
-            hint="Formato internacional, ex. +351912345678"
+            hint="Escolhe o país e escreve o número, ex. 912345678"
             error={errors.msisdn?.message}
           >
-            <Input
-              id="msisdn"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="+351912345678"
-              invalid={!!errors.msisdn}
-              {...detailsForm.register("msisdn", {
+            <Controller
+              control={detailsForm.control}
+              name="msisdn"
+              defaultValue=""
+              rules={{
                 required: "Indica o teu telemóvel.",
                 pattern: { value: MSISDN_PATTERN, message: "Número inválido." },
-              })}
+              }}
+              render={({ field, fieldState }) => (
+                <PhoneField
+                  id="msisdn"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  invalid={!!fieldState.error}
+                />
+              )}
             />
           </Field>
           <div className={styles.actions}>
@@ -142,6 +162,9 @@ export default function RegisterForm() {
         </form>
       ) : (
         <form className={styles.form} onSubmit={submitCode} noValidate>
+          <Field label="Telemóvel" htmlFor="msisdn-sent">
+            <Input id="msisdn-sent" type="tel" value={details?.msisdn ?? ""} readOnly disabled />
+          </Field>
           <Field
             label="Código"
             htmlFor="code"
@@ -155,6 +178,7 @@ export default function RegisterForm() {
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
+              autoFocus
               invalid={!!codeForm.formState.errors.code}
               {...codeForm.register("code", {
                 required: "Introduz o código.",
@@ -172,6 +196,7 @@ export default function RegisterForm() {
               onClick={() => {
                 setStep("details");
                 setFormError(null);
+                codeForm.reset();
               }}
             >
               Editar dados

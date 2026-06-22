@@ -1,0 +1,31 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-surface);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  padding: var(--space-6) var(--gutter-mobile);
+}
+
+.gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .shell {
+    flex-direction: row;
+  }
+
+  .main {
+    padding: var(--space-8) var(--gutter-tablet);
+    max-width: var(--container-desktop);
+  }
+}

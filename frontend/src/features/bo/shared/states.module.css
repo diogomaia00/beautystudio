@@ -1,0 +1,27 @@
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  border: var(--stroke-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: var(--text-muted);
+}
+
+.error {
+  border-color: var(--color-error);
+  background: var(--color-error-tint);
+  color: var(--color-error-text);
+}
+
+.title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.errorTitle {
+  color: var(--color-error-text);
+}

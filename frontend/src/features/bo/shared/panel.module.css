@@ -1,0 +1,115 @@
+/* Shared BO presentational classes. Feature pages import this module and use
+   its class names so spacing, cards, tables and toolbars stay consistent. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toolbarPush {
+  margin-left: auto;
+}
+
+.card {
+  background: var(--color-white);
+  border: var(--stroke-contour);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cardTitle {
+  font-size: var(--text-h5-size);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.cardMeta {
+  font-size: var(--text-caption-size);
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .grid2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Horizontally scrollable table wrapper (never let the page scroll sideways). */
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: var(--stroke-contour);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-caption-size);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--stroke-divider);
+  white-space: nowrap;
+}
+
+.table th {
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--color-neutral-100);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.feedbackError {
+  color: var(--color-error-text);
+  font-size: var(--text-caption-size);
+}
+
+.feedbackSuccess {
+  color: var(--color-success-text);
+  font-size: var(--text-caption-size);
+}
