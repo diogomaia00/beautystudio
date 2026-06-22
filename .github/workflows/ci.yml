@@ -2,9 +2,264 @@ name: CI/CD pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [dev, main]
   pull_request:
-    branches: [ main ]
+    branches: [dev, main]
 
-jobs: 
-  # TODO
+# Cancel in-progress runs for the same PR/branch.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Shared backend test DB — matches .env.example defaults.
+  POSTGRES_DB: beautystudio
+  POSTGRES_USER: beautystudio
+  POSTGRES_PASSWORD: ci-password
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  DJANGO_SECRET_KEY: ci-only-not-for-production
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+  DJANGO_SETTINGS_MODULE: config.settings.test
+
+jobs:
+  # ── Backend ─────────────────────────────────────────────────────────────────
+
+  backend-lint:
+    name: Backend (lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Black
+        run: black --check .
+
+      # TODO: enable when you want stricter typing in CI
+      # - name: Mypy
+      #   run: mypy .
+
+  backend-migrations:
+    name: Backend (migrations check)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: beautystudio
+          POSTGRES_USER: beautystudio
+          POSTGRES_PASSWORD: ci-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beautystudio -d beautystudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+  backend-test:
+    name: Backend (tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: beautystudio
+          POSTGRES_USER: beautystudio
+          POSTGRES_PASSWORD: ci-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beautystudio -d beautystudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Migrate
+        run: python manage.py migrate --noinput
+
+      - name: Run Django test suite
+        run: python manage.py test --settings=config.settings.test
+
+      # TODO: switch to pytest once you standardise on it (pytest is in dev.txt)
+      # run: pytest
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+
+  frontend-lint:
+    name: Frontend (lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+  frontend-typecheck:
+    name: Frontend (typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run type-check
+
+  frontend-test:
+    name: Frontend (tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Jest
+        run: npm test -- --passWithNoTests
+
+  frontend-build:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Defaults in src/lib/api.ts work without real URLs in CI.
+      - name: Next.js production build
+        run: npm run build
+
+  # ── Infra (optional but useful) ─────────────────────────────────────────────
+
+  docker-build:
+    name: Infra (Docker images)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t beautystudio-backend:ci ./backend
+
+      - name: Build frontend image (prod stage)
+        run: docker build --target prod -t beautystudio-frontend:ci ./frontend
+
+  # TODO: Bruno API smoke — needs a running backend + seeded DB.
+  # bruno-smoke:
+  #   name: API · Bruno smoke
+  #   needs: [backend-test]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Start stack
+  #       run: docker compose up -d --wait
+  #     - name: Run Bruno collection
+  #       run: npx @usebruno/cli run backend/tests/bruno --env local
+
+  # ── CD (placeholder — Phase 6.3) ───────────────────────────────────────────
+
+  deploy:
+    name: Deploy (Hetzner VPS)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - backend-lint
+      - backend-migrations
+      - backend-test
+      - frontend-lint
+      - frontend-typecheck
+      - frontend-test
+      - frontend-build
+      # - docker-build   # uncomment when you want deploy gated on image builds
+    runs-on: ubuntu-latest
+    environment: production   # TODO: create in GitHub → Settings → Environments
+    steps:
+      - name: TODO — deploy to Hetzner
+        run: |
+          echo "Wire SSH/rsync, docker compose pull/up, or your chosen deploy tool."
+          echo "Secrets: HETZNER_SSH_KEY, DEPLOY_HOST, etc."
