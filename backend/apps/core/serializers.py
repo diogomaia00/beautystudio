@@ -22,6 +22,7 @@ class SystemSettingsSerializer(serializers.ModelSerializer):
             "max_appointments_per_day",
             "max_appointments_per_week",
             "max_appointments_per_batch",
+            "location",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]

@@ -17,7 +17,7 @@ from common.constants import (
     OtpPurpose,
     UserRole,
 )
-from integrations.twilio.client import send_sms
+from integrations.telnyx.client import send_sms
 
 from . import selectors
 from .models import ClientServiceDuration, OtpCode, StaffEducation, User

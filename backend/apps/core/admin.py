@@ -12,6 +12,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         "max_appointments_per_day",
         "max_appointments_per_week",
         "max_appointments_per_batch",
+        "location",
         "updated_at",
     )
 

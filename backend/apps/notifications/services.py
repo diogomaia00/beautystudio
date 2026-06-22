@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import logging
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 
-from common.constants import BoAlertType, NotificationChannel
+from common.constants import (
+    NOTIFICATION_CHANNEL_PRIORITY,
+    BoAlertType,
+    NotificationChannel,
+)
 from common.utils import clinic_tz
-from integrations.twilio.client import send_sms
+from integrations.resend.client import send_email
+from integrations.telnyx.client import send_sms
+from integrations.whatsapp.client import send_whatsapp
 
 from .models import BoAlert, NotificationLog, NotificationStatus
 
@@ -16,23 +20,53 @@ logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------
-# Client notifications (respect the preferred channel)
+# Client notifications — WhatsApp → SMS → email cascade (ADR 0007)
 # ------------------------------------------------------------
 
-def _deliver(*, client, subject: str, body: str) -> str:
-    """Send via the client's preferred channel; return the resulting status."""
-    channel = client.preferred_channel or NotificationChannel.SMS
-    try:
-        if channel == NotificationChannel.EMAIL:
-            if not client.email:
-                return NotificationStatus.SKIPPED
-            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [client.email])
-        else:
-            send_sms(client.msisdn, body)
-    except Exception:  # noqa: BLE001 — log and mark failed; never crash the caller
-        logger.exception("Notification delivery failed for %s", client.id)
-        return NotificationStatus.FAILED
-    return NotificationStatus.SENT
+def _channel_order(preferred: str | None) -> list[str]:
+    """Delivery order: the client's preferred channel first, then the default
+    priority cascade (WhatsApp → SMS → email)."""
+    order: list[str] = [preferred] if preferred else []
+    order += [c for c in NOTIFICATION_CHANNEL_PRIORITY if c not in order]
+    return order
+
+
+def _attempt(channel: str, *, client, subject: str, body: str) -> bool:
+    """Try one channel. Returns True on success, False if not applicable for
+    this client; raises on a real provider failure so the caller can fall back."""
+    if channel == NotificationChannel.EMAIL:
+        if not client.email:
+            return False
+        send_email(client.email, subject, body)
+    elif channel == NotificationChannel.SMS:
+        if not client.msisdn:
+            return False
+        send_sms(client.msisdn, body)
+    elif channel == NotificationChannel.WHATSAPP:
+        if not client.msisdn:
+            return False
+        send_whatsapp(client.msisdn, body)
+    else:
+        return False
+    return True
+
+
+def _deliver(*, client, subject: str, body: str) -> tuple[str, str | None]:
+    """Send through the channel cascade; return (status, channel_used)."""
+    last_channel: str | None = None
+    for channel in _channel_order(client.preferred_channel):
+        last_channel = channel
+        try:
+            if _attempt(channel, client=client, subject=subject, body=body):
+                return NotificationStatus.SENT, channel
+        except Exception:  # noqa: BLE001 — log and fall back to the next channel
+            logger.warning(
+                "Notification via %s failed for %s; trying next channel",
+                channel,
+                client.id,
+                exc_info=True,
+            )
+    return NotificationStatus.FAILED, last_channel
 
 
 def send_to_client(*, client, subject: str, body: str, dedup_key: str | None = None) -> NotificationLog | None:
@@ -41,16 +75,15 @@ def send_to_client(*, client, subject: str, body: str, dedup_key: str | None = N
     Returns ``None`` when the message was already sent (idempotent) — safe for
     retried periodic tasks (see background-jobs.md).
     """
-    channel = client.preferred_channel or NotificationChannel.SMS
     if dedup_key and NotificationLog.objects.filter(dedup_key=dedup_key).exists():
         return None
 
-    status = _deliver(client=client, subject=subject, body=body)
+    status, channel_used = _deliver(client=client, subject=subject, body=body)
     try:
         with transaction.atomic():
             return NotificationLog.objects.create(
                 recipient=client,
-                channel=channel,
+                channel=channel_used or client.preferred_channel,
                 subject=subject,
                 body=body,
                 status=status,

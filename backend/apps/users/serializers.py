@@ -21,6 +21,7 @@ class UserSerializer(serializers.Serializer):
     first_name = serializers.CharField(read_only=True)
     last_name = serializers.CharField(read_only=True)
     email = serializers.EmailField(read_only=True)
+    birthday = serializers.DateField(read_only=True, allow_null=True)
     preferred_channel = serializers.CharField(read_only=True)
 
 

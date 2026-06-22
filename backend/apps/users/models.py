@@ -57,7 +57,7 @@ class User(AbstractUser):
     preferred_channel = models.CharField(
         max_length=10,
         choices=NotificationChannel.choices,
-        default=NotificationChannel.SMS,
+        default=NotificationChannel.WHATSAPP,
     )
     blacklisted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

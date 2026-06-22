@@ -17,6 +17,13 @@ class SystemSettings(models.Model):
     max_appointments_per_week = models.PositiveIntegerField(default=3)
     max_appointments_per_batch = models.PositiveIntegerField(default=3)
 
+    # Clinic postal address, shown in the client app footer.
+    location = models.CharField(
+        max_length=255,
+        blank=True,
+        default="Rua Vila Vieira 17, 3060-008 Ançã",
+    )
+
     # default (not auto_now_add) so the value is populated on instantiation; the
     # singleton's forced pk=1 save() takes the UPDATE path, where auto_now_add
     # would leave created_at unset (NULL) and violate the NOT NULL constraint.

@@ -18,8 +18,19 @@ class AppointmentStatus(models.TextChoices):
 
 
 class NotificationChannel(models.TextChoices):
-    EMAIL = "email", "Email"
+    WHATSAPP = "whatsapp", "WhatsApp"
     SMS = "sms", "SMS"
+    EMAIL = "email", "Email"
+
+
+# Default delivery cascade for client notifications: WhatsApp first, SMS
+# fallback, email complementary (see ADR 0007). A client's preferred_channel,
+# when set, is tried before the rest of this order.
+NOTIFICATION_CHANNEL_PRIORITY = [
+    NotificationChannel.WHATSAPP,
+    NotificationChannel.SMS,
+    NotificationChannel.EMAIL,
+]
 
 
 class CancelReason(models.TextChoices):

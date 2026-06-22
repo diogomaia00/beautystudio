@@ -7,4 +7,6 @@ python-decouple==3.8
 gunicorn==22.0.0
 whitenoise==6.9.0
 python-json-logger==3.2.1
-twilio==9.10.9
+# Notification providers (ADR 0007): SDKs added when real sending is wired
+# (telnyx, resend) — the WhatsApp Cloud API uses plain HTTP. Until then the
+# provider clients log in dev when unconfigured.

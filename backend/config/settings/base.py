@@ -162,7 +162,15 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@beautystudio.pt")
 
-# Twilio
-TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
-TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
-TWILIO_FROM_NUMBER = config("TWILIO_FROM_NUMBER", default="")
+# Notification channels (ADR 0007): WhatsApp primary, SMS fallback, email.
+# WhatsApp Cloud API (Meta)
+WHATSAPP_PHONE_NUMBER_ID = config("WHATSAPP_PHONE_NUMBER_ID", default="")
+WHATSAPP_ACCESS_TOKEN = config("WHATSAPP_ACCESS_TOKEN", default="")
+WHATSAPP_BUSINESS_ACCOUNT_ID = config("WHATSAPP_BUSINESS_ACCOUNT_ID", default="")
+
+# Telnyx (SMS fallback + login OTP)
+TELNYX_API_KEY = config("TELNYX_API_KEY", default="")
+TELNYX_FROM_NUMBER = config("TELNYX_FROM_NUMBER", default="")
+
+# Resend (transactional email)
+RESEND_API_KEY = config("RESEND_API_KEY", default="")

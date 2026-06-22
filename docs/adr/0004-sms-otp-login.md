@@ -4,6 +4,11 @@
 - Date: 2026-06-17
 - Deciders: Diogo
 
+> **Note (2026-06-20, ADR 0007):** the SMS-OTP decision stands; only the SMS
+> provider changed from Twilio to **Telnyx**. Login OTP remains SMS-only — the
+> WhatsApp-first cascade introduced in ADR 0007 applies to notifications, not the
+> auth code.
+
 ## Context
 
 The client app is mobile-first and every user already provides a verified
