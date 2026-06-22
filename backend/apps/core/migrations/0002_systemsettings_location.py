@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="location",
             field=models.CharField(
                 blank=True,
-                default="Rua Vila Vieira 17, 3060-008 Ançã",
+                default="Rua Vila Vieira 17, Ançã",
                 max_length=255,
             ),
         ),

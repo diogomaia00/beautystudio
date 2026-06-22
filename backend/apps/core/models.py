@@ -21,7 +21,7 @@ class SystemSettings(models.Model):
     location = models.CharField(
         max_length=255,
         blank=True,
-        default="Rua Vila Vieira 17, 3060-008 Ançã",
+        default="Rua Vila Vieira 17, Ançã",
     )
 
     # default (not auto_now_add) so the value is populated on instantiation; the

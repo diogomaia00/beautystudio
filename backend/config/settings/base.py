@@ -92,11 +92,30 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "common.utils.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Per-IP throttle for the SMS OTP endpoints; per-msisdn limits are enforced
-    # in the service layer (see apps/users/services.py).
+    # Rate limiting / throttling (see backend.md "Apply rate limiting and
+    # throttling"). Global per-IP (anon) and per-account (user) limits guard the
+    # whole API; the OTP endpoints additionally use the tighter `otp` scope.
+    # Per-msisdn OTP limits are also enforced in the service layer
+    # (see apps/users/services.py). Rates are overridable via env for tuning.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
     "DEFAULT_THROTTLE_RATES": {
-        "otp": "10/min",
+        "anon": config("THROTTLE_ANON_RATE", default="60/min"),
+        "user": config("THROTTLE_USER_RATE", default="240/min"),
+        "otp": config("THROTTLE_OTP_RATE", default="10/min"),
     },
+}
+
+# Throttle state is kept in Django's cache. Default to the local-memory backend
+# (no Redis — see overview.md). It is per-process, which is adequate for this
+# single-clinic, low-volume deployment; switch to a shared backend only if the
+# API is ever scaled to multiple worker processes that must share counters.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
 }
 
 SPECTACULAR_SETTINGS = {

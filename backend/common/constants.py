@@ -94,3 +94,6 @@ OTP_MAX_VERIFY_ATTEMPTS = 5
 OTP_REQUEST_COOLDOWN_SECONDS = 60
 # Max code requests per msisdn within a rolling hour.
 OTP_MAX_REQUESTS_PER_HOUR = 5
+
+# Minimum age (in years) required to create a client account (see business-rules.md).
+MIN_SIGNUP_AGE_YEARS = 12

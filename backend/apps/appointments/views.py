@@ -13,6 +13,7 @@ from .serializers import (
     AppointmentCreateSerializer,
     AppointmentSerializer,
     BatchCreateSerializer,
+    BoAppointmentSerializer,
     NailArtEditSerializer,
     RescheduleSerializer,
 )
@@ -147,7 +148,7 @@ class AppointmentNailArtBlockedView(_ClientAppointmentBase):
 class BoAppointmentListView(APIView):
     permission_classes = [IsStaffMember]
 
-    @extend_schema(responses={200: AppointmentSerializer(many=True)}, tags=["bo-appointments"])
+    @extend_schema(responses={200: BoAppointmentSerializer(many=True)}, tags=["bo-appointments"])
     def get(self, request):
         staff_id = request.query_params.get("staff_id")
         start_at = request.query_params.get("start_at")
@@ -155,7 +156,7 @@ class BoAppointmentListView(APIView):
         if not (staff_id and start_at and end_at):
             raise NotFound("staff_id, start_at and end_at query params are required.")
         qs = selectors.list_staff_appointments_in_range(staff_id, start_at, end_at)
-        return Response(AppointmentSerializer(qs, many=True).data)
+        return Response(BoAppointmentSerializer(qs, many=True).data)
 
 
 class _BoAppointmentBase(APIView):
@@ -169,36 +170,36 @@ class _BoAppointmentBase(APIView):
 
 
 class BoAppointmentDetailView(_BoAppointmentBase):
-    @extend_schema(responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def get(self, request, appointment_id):
-        return Response(AppointmentSerializer(self.get_appointment(appointment_id)).data)
+        return Response(BoAppointmentSerializer(self.get_appointment(appointment_id)).data)
 
 
 class BoAppointmentMarkMadeView(_BoAppointmentBase):
-    @extend_schema(request=None, responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(request=None, responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def post(self, request, appointment_id):
         appointment = services.mark_made(appointment=self.get_appointment(appointment_id))
-        return Response(AppointmentSerializer(appointment).data)
+        return Response(BoAppointmentSerializer(appointment).data)
 
 
 class BoAppointmentMarkNoShowView(_BoAppointmentBase):
-    @extend_schema(request=None, responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(request=None, responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def post(self, request, appointment_id):
         appointment = services.mark_no_show(appointment=self.get_appointment(appointment_id))
-        return Response(AppointmentSerializer(appointment).data)
+        return Response(BoAppointmentSerializer(appointment).data)
 
 
 class BoAppointmentCancelView(_BoAppointmentBase):
-    @extend_schema(request=None, responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(request=None, responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def post(self, request, appointment_id):
         appointment = services.cancel_appointment(
             appointment=self.get_appointment(appointment_id), reason=CancelReason.STAFF
         )
-        return Response(AppointmentSerializer(appointment).data)
+        return Response(BoAppointmentSerializer(appointment).data)
 
 
 class BoAppointmentRescheduleView(_BoAppointmentBase):
-    @extend_schema(request=RescheduleSerializer, responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(request=RescheduleSerializer, responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def post(self, request, appointment_id):
         data = RescheduleSerializer(data=request.data)
         data.is_valid(raise_exception=True)
@@ -207,11 +208,11 @@ class BoAppointmentRescheduleView(_BoAppointmentBase):
             new_start_at=data.validated_data["new_start_at"],
             by_client=False,
         )
-        return Response(AppointmentSerializer(appointment).data)
+        return Response(BoAppointmentSerializer(appointment).data)
 
 
 class BoAppointmentNailArtView(_BoAppointmentBase):
-    @extend_schema(request=NailArtEditSerializer, responses={200: AppointmentSerializer}, tags=["bo-appointments"])
+    @extend_schema(request=NailArtEditSerializer, responses={200: BoAppointmentSerializer}, tags=["bo-appointments"])
     def patch(self, request, appointment_id):
         data = NailArtEditSerializer(data=request.data)
         data.is_valid(raise_exception=True)
@@ -219,4 +220,4 @@ class BoAppointmentNailArtView(_BoAppointmentBase):
             appointment=self.get_appointment(appointment_id),
             nail_art_option=data.validated_data["nail_art_option"],
         )
-        return Response(AppointmentSerializer(appointment).data)
+        return Response(BoAppointmentSerializer(appointment).data)

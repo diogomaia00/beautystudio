@@ -38,6 +38,9 @@ class ServiceListView(ListAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = ServiceSerializer
+    # The catalog is a small, bounded reference list the UI consumes whole
+    # (grouped into category tabs) — unpaginated, like CategoryListView above.
+    pagination_class = None
 
     def get_queryset(self):
         return selectors.list_services(

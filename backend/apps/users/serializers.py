@@ -1,7 +1,14 @@
 from django.core.validators import RegexValidator
+from django.utils import timezone
 from rest_framework import serializers
 
-from common.constants import OTP_CODE_LENGTH, EducationType, NotificationChannel, OtpPurpose
+from common.constants import (
+    MIN_SIGNUP_AGE_YEARS,
+    OTP_CODE_LENGTH,
+    EducationType,
+    NotificationChannel,
+    OtpPurpose,
+)
 
 from .models import ClientServiceDuration, StaffEducation
 
@@ -10,6 +17,22 @@ msisdn_validator = RegexValidator(
     regex=r"^\+?[1-9]\d{6,14}$",
     message="Enter a valid phone number in international (E.164) format.",
 )
+
+
+def validate_birthday(value):
+    """Birthday must not be in the future and the person must be old enough.
+
+    Minimum age is ``MIN_SIGNUP_AGE_YEARS`` (see business-rules.md).
+    """
+    today = timezone.localdate()
+    if value > today:
+        raise serializers.ValidationError("A data de nascimento não pode ser no futuro.")
+    age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+    if age < MIN_SIGNUP_AGE_YEARS:
+        raise serializers.ValidationError(
+            f"É necessário ter pelo menos {MIN_SIGNUP_AGE_YEARS} anos para criar conta."
+        )
+    return value
 
 
 class UserSerializer(serializers.Serializer):
@@ -44,7 +67,7 @@ class OtpVerifySerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False, allow_blank=False)
     last_name = serializers.CharField(required=False, allow_blank=False)
     email = serializers.EmailField(required=False)
-    birthday = serializers.DateField(required=False)
+    birthday = serializers.DateField(required=False, validators=[validate_birthday])
 
     def validate(self, attrs):
         if attrs["purpose"] == OtpPurpose.SIGNUP:
@@ -76,7 +99,7 @@ class ClientProfileUpdateSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     email = serializers.EmailField(required=False)
-    birthday = serializers.DateField(required=False)
+    birthday = serializers.DateField(required=False, validators=[validate_birthday])
     preferred_channel = serializers.ChoiceField(
         choices=NotificationChannel.choices, required=False
     )
