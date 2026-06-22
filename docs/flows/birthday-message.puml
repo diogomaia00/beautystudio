@@ -1,10 +1,10 @@
 @startuml
-title Birthday message (scheduled, SMS)
+title Birthday message (scheduled)
 
 participant "Worker (Procrastinate)" as Worker
 participant "BE (Django/DRF)" as BE
 database "DB (PostgreSQL)" as DB
-participant "Twilio / Email" as Channel
+participant "WhatsApp / SMS / Email" as Channel
 
 Worker -> BE : periodic notifications.send_birthday_messages
 note over Worker
@@ -16,7 +16,8 @@ loop each client
   BE -> BE : notifications.services.send_birthday_message_now(year)
   note over BE
     - on behalf of the Beauty Studio team
-    - respects preferred channel; dedup_key "birthday:{id}:{year}"
+    - cascade WhatsApp -> SMS -> email (preferred first; ADR 0007)
+    - dedup_key "birthday:{id}:{year}"
   end note
   BE -> Channel : send greeting
   BE -> DB : INSERT notifications_log

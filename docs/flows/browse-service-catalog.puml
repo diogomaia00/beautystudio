@@ -1,0 +1,42 @@
+@startuml
+title Browse service catalog (client app — /agendar)
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> NGINX : GET /agendar
+NGINX -> FE : proxy (static client app)
+note over FE
+  Public page — no auth required.
+  Renders the catalog grouped by category as tabs:
+  - Unhas, Estética (price + duration)
+  - Laser (price only, display-only)
+end note
+
+FE -> FE : SchedulingTabs (features/services/catalog.ts)
+note right of FE
+  Roadmap 4.4 (current): catalog data is a STATIC
+  frontend constant mirroring backend seed_data.py.
+  - formatPrice(): null -> "Sob consulta"
+  - bookable tabs show an "Agendar" CTA placeholder
+    (real booking = roadmap 4.5, not yet wired)
+  - Laser: not bookable -> "contacta João Veloso"
+end note
+
+FE --> Client : catalog UI (tabs, price/duration list)
+
+== Planned (when booking lands — roadmap 4.4/4.5) ==
+FE -[#888]-> NGINX : GET /v1/services/?category_id=...
+NGINX -[#888]-> BE : proxy
+note over BE
+  Public, read-only catalog (AllowAny).
+  selectors.list_services(active_only=True)
+  ServiceSerializer -> includes effective_price
+  (seasonal discount applied), is_quote_only.
+end note
+BE -[#888]-> DB : SELECT services (select_related category, staff)
+BE -[#888]-> FE : 200 OK (serialized services)
+@enduml

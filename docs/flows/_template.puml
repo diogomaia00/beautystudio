@@ -8,7 +8,7 @@ participant "FE (Next.js)" as FE
 participant "BE (Django/DRF)" as BE
 database "DB (PostgreSQL)" as DB
 'participant "Worker (Procrastinate)" as Worker
-'participant "Twilio" as SMS
+'participant "WhatsApp / SMS / Email" as Channel
 
 Client -> FE : submit (e.g. booking form)
 FE -> NGINX : POST /v1/<resource>          ' BO flows use /bo/v1/<resource>

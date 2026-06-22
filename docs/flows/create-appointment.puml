@@ -55,7 +55,7 @@ FE --> Client : confirmation UI
 Worker -> BE : run send_appointment_confirmation(appointment_id)
 note over Worker
   notifications.services.send_appointment_confirmation_now
-  - respects client's preferred channel (email/SMS)
+  - cascade WhatsApp -> SMS -> email (preferred first; ADR 0007)
   - deduped via NotificationLog.dedup_key (idempotent)
 end note
 @enduml

@@ -1,0 +1,30 @@
+@startuml
+title Edit Nail Art — blocked for clients (simple ↔ complex)
+
+actor Client
+participant "FE (Next.js client)" as FE
+participant "NGINX" as NGINX
+participant "BE (Django/DRF)" as BE
+
+== Client-side guard (UX) ==
+Client -> FE : tap "Alterar nail art" on a booked nail-art appointment
+note over FE
+  Modal (with close button) opens immediately:
+  "Nail art changes (simple ↔ complex) are made by the
+   esteticista — please talk to her directly."
+  Clients can book nail art but never change it themselves
+  (see business-rules.md). No API call needed for the UX.
+end note
+FE --> Client : informational modal
+
+== Server-side enforcement (defense) ==
+Client -> FE : (any client attempt to change nail art)
+FE -> NGINX : POST /v1/appointments/{id}/nail-art/
+NGINX -> BE : proxy
+note over BE
+  appointments.views.AppointmentNailArtBlockedView
+  AuthZ: owner client; always raises PermissionDenied (403)
+  Only staff edit Nail Art (BO — Phase 5.6).
+end note
+BE --> FE : 403 (staff-only change)
+@enduml

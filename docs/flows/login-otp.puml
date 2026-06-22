@@ -6,7 +6,7 @@ participant "NGINX" as NGINX
 participant "FE (Next.js)" as FE
 participant "BE (Django/DRF)" as BE
 database "DB (PostgreSQL)" as DB
-participant "Twilio" as SMS
+participant "Telnyx (SMS)" as SMS
 
 ' Same flow serves the client app (/v1/auth) and the BO (/bo/v1/auth);
 ' only authorization differs downstream (ADR 0002 & 0004).
@@ -40,8 +40,8 @@ end note
 BE -> DB : INSERT otp_code (code_hash, expires_at)
 BE -> SMS : send_sms(msisdn, code)
 note right of SMS
-  integrations.twilio.client.send_sms
-  Dev: logs the code when Twilio is unconfigured
+  integrations.telnyx.client.send_sms (OTP is SMS-only — ADR 0007)
+  Dev: logs the code when Telnyx is unconfigured
 end note
 BE --> FE : 200 {"detail": "...code sent"}
 

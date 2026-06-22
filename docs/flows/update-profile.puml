@@ -1,0 +1,30 @@
+@startuml
+title Update client profile
+
+actor Client
+participant "NGINX" as NGINX
+participant "FE (Next.js client)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+Client -> FE : open /perfil (prefilled from /auth/me)
+note over FE
+  ProfileForm (React Hook Form) — msisdn read-only.
+  Editable: first/last name, email, birthday, preferred_channel.
+end note
+
+Client -> FE : edit + submit
+FE -> NGINX : PATCH /v1/profile/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  AuthN: session cookie; AuthZ: role = client (IsClient)
+  users.serializers.ClientProfileUpdateSerializer (partial)
+  - email format; preferred_channel in {whatsapp, sms, email}
+  - msisdn NOT editable here (contact change via staff)
+end note
+BE -> BE : users.services.update_client_profile()
+BE -> DB : UPDATE users_user (own row)
+BE --> FE : 200 (UserSerializer incl. birthday)
+FE -> FE : update /auth/me cache (TanStack Query)
+FE --> Client : "Perfil atualizado"
+@enduml
