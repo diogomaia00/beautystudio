@@ -22,7 +22,9 @@ All roles authenticate by a **one-time code sent via SMS** to their `msisdn` —
 passwords for app login.
 
 1. User submits `msisdn`; the backend issues a short-lived code, stores only its
-   **hash** in `otp_code` (TTL ~5 min), and sends the code via Twilio.
+   **hash** in `otp_code` (TTL ~5 min), and sends the code via **SMS (Telnyx)**.
+   Login OTP is SMS-only — the WhatsApp-first cascade (ADR 0007) is for
+   notifications, not the auth code.
 2. User submits the code; the backend verifies the hash, checks expiry and the
    attempts cap, marks it consumed, and **establishes the Django session**.
 3. Sign-up uses the same verify step (`purpose = signup`): the code is tied to

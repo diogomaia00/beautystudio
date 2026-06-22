@@ -7,7 +7,7 @@ browser ──> NGINX ──> frontend (Next.js: client app + back office)
                  └──> backend  (Django REST API)
 backend  ──> PostgreSQL
 backend  ──> Procrastinate worker ──> PostgreSQL (task queue + periodic jobs)
-backend  ──> integrations (Google Calendar, email, SMS/Twilio)
+backend  ──> integrations (Google Calendar, WhatsApp, SMS/Telnyx, email/Resend)
 ```
 
 - **Two frontends, one API surface.** The client app (booking) and the back office (staff/admin) live in **one Next.js app** as `(client)` and `(bo)` route groups, served under one domain via NGINX, and talk to the same Django backend (see ADR 0005). 

@@ -13,15 +13,14 @@ Tasks live in each app's `tasks.py` and **delegate to that app's service layer**
 ### Messages (`notifications` app)
 
 #### Appointment reminders
-Sent **~24h before** (the day before) the appointment, via the client's
-preferred channel (email or SMS; WhatsApp is roadmap), including:
+Sent **~24h before** (the day before) the appointment, via the
+**WhatsApp → SMS → email** cascade (preferred channel first; see ADR 0007), including:
 - Day and hour of the appointment
 - Type of service
 - Service value
 
 #### Birthday message
-Send an SMS wishing the client a happy birthday on behalf of the Beauty Studio
-team.
+Send an SMS wishing the client a happy birthday on behalf of the Beauty Studio team.
 
 ### Reports (`reports` app)
 

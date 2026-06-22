@@ -18,7 +18,7 @@ Model the flow across these components, in order:
 - `BE` — the Django/DRF backend.
 - `DB` — PostgreSQL.
 
-Add extra participants **only when the flow uses them:** `Worker` (Procrastinate), or an external system (`Twilio`, `Email`, `Google Calendar`).
+Add extra participants **only when the flow uses them:** `Worker` (Procrastinate), or an external system (`WhatsApp`, `Telnyx` (SMS), `Resend` (email), `Google Calendar`).
 
 ## What to document
 
@@ -50,7 +50,7 @@ participant "FE (Next.js)" as FE
 participant "BE (Django/DRF)" as BE
 database "DB (PostgreSQL)" as DB
 'participant "Worker (Procrastinate)" as Worker
-'participant "Twilio" as SMS
+'participant "WhatsApp / SMS / Email" as Channel
 
 Client -> FE : submit (e.g. booking form)
 FE -> NGINX : POST /v1/appointments

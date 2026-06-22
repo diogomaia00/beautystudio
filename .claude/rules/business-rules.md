@@ -7,7 +7,7 @@ These rules are enforced in the relevant app's service layer (see `ddd.md`) and 
 
 - Clients must have an **account to book**; they **self sign-up** and log in. (Roles and auth surfaces are defined in `auth.md`.)
 - **Required sign-up fields:** first name, last name, birthday, email, phone number (MSISDN, E.164 — supports non-Portuguese numbers).
-- The profile also stores the **preferred notification channel** (email or SMS); birthday powers the birthday message.
+- The profile also stores the **preferred notification channel** (whatsapp / sms / email; default whatsapp). Notifications follow a **WhatsApp → SMS → email** cascade (the preferred channel is tried first); see ADR 0007. Birthday powers the birthday message.
 - Staff can also create/adjust client profiles in the BO (except personal info and contacts).
 
 ## Service catalog
@@ -124,7 +124,7 @@ These rules are enforced in the relevant app's service layer (see `ddd.md`) and 
 Items captured from planning notes; not part of the initial build.
 
 - **Google Calendar** — connect the BO to staff Google Calendars; associate each confirmed appointment with the staff member's calendar.
-- **WhatsApp notifications** — staff will MSISDN so that by 2027 it is the number used for bookings. 
+- **WhatsApp notifications** — the channel itself is now **primary** (ADR 0007); what remains roadmap is the *content/scheduling* below and Meta template approval.
   Planned message:
   - Service reminder: "Relembramos [service_friendly_name] amanhã às [service_hours]".
     - to be sent on the day before the service

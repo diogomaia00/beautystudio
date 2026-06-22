@@ -52,7 +52,7 @@ views.py        thin: auth check, deserialize (serializer), call service/selecto
                      │
                      ├──▶ models.py        persistence (ORM)
                      ├──▶ tasks.py         enqueue async work (Procrastinate)
-                     └──▶ integrations/    external systems (Google Calendar, Twilio, email)
+                     └──▶ integrations/    external systems (Google Calendar, WhatsApp, SMS, email)
 ```
 
 ### Rules

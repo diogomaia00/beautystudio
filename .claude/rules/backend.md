@@ -119,10 +119,10 @@ Layering rules (see `ddd.md` for the full rationale):
 
 ## INTEGRATIONS
 
-- **Notifications**
-  - Email via an email provider
-  - SMS via Twilio
-  - WhatsApp is a roadmap channel (see `business-rules.md`)
+- **Notifications** (cascade WhatsApp → SMS → email; see ADR 0007)
+  - WhatsApp via the **WhatsApp Cloud API (Meta)** — primary channel
+  - SMS via **Telnyx** — fallback channel + login OTP transport
+  - Email via **Resend** — complementary/transactional
 - **Google Calendar** — use the Google Calendar API to sync confirmed
   appointments with the responsible staff member's Google Calendar.
 

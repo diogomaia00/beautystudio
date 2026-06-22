@@ -63,5 +63,5 @@ Code-level naming. Branch and commit naming live in `git.md`. Domain terms
 
 ## Environment variables
 
-- `UPPER_SNAKE_CASE`, grouped by concern (`POSTGRES_*`, `TWILIO_*`, `GOOGLE_CALENDAR_*`). 
+- `UPPER_SNAKE_CASE`, grouped by concern (`POSTGRES_*`, `WHATSAPP_*`, `TELNYX_*`, `RESEND_*`, `GOOGLE_CALENDAR_*`). 
 - Placeholders documented in `.env.example`.
