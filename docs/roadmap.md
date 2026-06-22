@@ -77,16 +77,18 @@ Update each task's **Status** as work progresses.
 
 | #   | Status | Task |
 |-----|--------|------|
-| 4.1 | pending | Next.js app bootstrap (App Router, TS strict, TanStack Query, Jost font) |
-| 4.2 | pending | Design system tokens (color, spacing, radius, typography, motion) + base UI components |
-| 4.3 | pending | Auth (session) — login / register |
-| 4.4 | pending | Service catalog browse by category |
-| 4.5 | pending | Booking flow with FullCalendar (server-validated availability) |
-| 4.6 | pending | Appointment list + self cancel/reschedule (≤24h rule) |
-| 4.7 | pending | Nail Art edit modal (client cannot switch simple↔complex) |
-| 4.8 | pending | Client profile (birthday, preferred channel) |
-| 4.9 | pending | Mobile-first responsive pass (clients are mostly on mobile) |
-| 4.10 | pending | Public staff profile page (education/experience) |
+| 4.1 | developed | Next.js app bootstrap (App Router, TS strict, TanStack Query, Jost font) |
+| 4.2 | developed | Design system tokens (color, spacing, radius, typography, motion) + base UI components — `tokens.css` + layout components (Navbar/Footer/PageHeader/SchedulingTabs) + UI kit in `components/ui` (`Button`, `Input`, `Field`, `Select`, `Modal`), all consuming semantic tokens |
+| 4.3 | developed | Auth (session) — login / register — SMS-OTP **login** + **sign-up** (2-step: number → 6-digit code) with React Hook Form, CSRF-aware API client, session via `/auth/me`, logout, and navbar auth state. Flow: `login-otp.puml`. OTP is SMS-only via **Telnyx** (ADR 0007). ⚠️ To test OTP locally, leave `TELNYX_*` empty so the dev client logs the code |
+| 4.4 | developed | Service catalog browse by category — `/agendar` tabs from `GET /v1/services/categories` + `/v1/services`; price (effective/discounted) + duration; Laser is display-only (contact João Veloso, `features/services/config.ts`) |
+| 4.5 | developed | Booking flow (server-validated availability) — `/agendar` bookable services open a **mobile-first date → nail-art → slot → confirm** panel (`features/appointments`): `GET /v1/availability/slots` + `POST /v1/appointments` with idempotency key, login-gated, conflict/error handling. UI choice: date+slot list over FullCalendar (clients on mobile); **FullCalendar reserved for the BO staff calendar (Phase 5)**. Flow: `create-appointment.puml` |
+| 4.6 | developed | Appointment list + self cancel/reschedule (≤24h rule) — `/marcacoes` (login-gated, navbar link for clients): próximas/histórico, status badges, price snapshot; cancel + reschedule (reuses slot picker) for booked appts >24h out, with a "contact staff" note within 24h (server-enforced too). Flows: `cancel-appointment.puml`, `reschedule-appointment.puml` |
+| 4.7 | developed | Nail Art edit modal (client cannot switch simple↔complex) — "Alterar nail art" on booked nail-art appts opens an accessible `Modal` (close button) telling the client to talk to the esteticista; server still enforces 403. Flow: `edit-nail-art-blocked.puml` |
+| 4.8 | developed | Client profile (birthday, preferred channel) — `/perfil` (login-gated): RHF form for name/email/birthday/preferred_channel (whatsapp/sms/email), msisdn read-only; `GET`/`PATCH /v1/profile/` (birthday added to read serializer); greeting in navbar links here. Flow: `update-profile.puml` |
+| 4.9 | developed | Mobile-first responsive pass (clients are mostly on mobile) — all client pages verified at 375px: home/agendar/serviços + login/register (centered cards, full-width CTAs); marcações/perfil reuse the same responsive primitives + fluid `(client)` container |
+| 4.10 | in-progress | ⏸ **DEFERRED by owner** (add later). Public staff profile page — `/equipa` already wired to `GET /v1/staff` (real formations + loading/empty/error states). **TODO when resumed:** add `bio` (text) + photo to the staff model/API (photos as static files in `frontend/public/` per owner's choice; DB holds text), surface intro + photo on `/equipa`, and supply the content (photos, intros, formations) |
+
+> Also delivered (not tracked as rows above): welcome/home page (`/`), `(client)` shell with sticky navbar (text-link logo + nav) and footer, `/servicos` placeholder page, the footer clinic address backed by `system_settings.location` (migration `core.0002`), the TanStack Query provider (`shared/api/Providers`), a dev-only API proxy (`BACKEND_ORIGIN` rewrite in `next.config.ts` + git-ignored `frontend/.env.local`) so `npm run dev` reaches the backend without NGINX, the CSRF-aware API client (`lib/api.ts`), and the `react-hook-form` dependency.
 
 ## Phase 5 — Back office frontend (`(bo)` route group, same Next.js app)
 
