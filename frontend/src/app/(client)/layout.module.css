@@ -1,0 +1,19 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--container-desktop);
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter-mobile);
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: var(--space-12) var(--gutter-tablet);
+  }
+}

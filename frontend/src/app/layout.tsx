@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
+import Providers from "@/shared/api/Providers";
 import "@/styles/globals.css";
 
 const jost = Jost({
@@ -20,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt" className={jost.variable}>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

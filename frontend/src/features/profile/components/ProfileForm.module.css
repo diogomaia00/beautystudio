@@ -1,0 +1,31 @@
+.card {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background-color: var(--color-white);
+  border: var(--stroke-contour);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.actions {
+  margin-top: var(--space-2);
+}
+
+.status {
+  font-size: var(--text-caption-size);
+  color: var(--text-muted);
+}
+
+.error {
+  font-size: var(--text-caption-size);
+  color: var(--color-error-text);
+}
+
+.success {
+  font-size: var(--text-caption-size);
+  color: var(--color-success-text);
+}
