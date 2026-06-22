@@ -1,0 +1,56 @@
+@startuml
+title Back office — session bootstrap + shell (BoGuard)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' The BO is the (bo) route group of the single Next.js app (ADR 0005),
+' served under one domain via NGINX (/ -> client, /bo -> back office).
+
+== Log in (same SMS OTP flow as the client app) ==
+Staff -> FE : open /bo, log in
+note over FE, BE
+  Identical request/verify/session flow as login-otp.puml
+  (ADR 0002 & 0004) — staff and admin use POST /bo/v1/auth/otp/request
+  + /bo/v1/auth/otp/verify. Only authorization differs downstream.
+end note
+BE --> FE : 200 + Set-Cookie: sessionid (HttpOnly)
+
+== Guard the shell ==
+Staff -> FE : load /bo
+FE -> NGINX : GET /bo/v1/auth/me/ (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  users.views.CurrentUserView
+  AuthN: SessionAuthentication; permission IsAuthenticated
+end note
+BE -> DB : SELECT user
+BE --> FE : 200 (UserSerializer — includes role)
+note right of FE
+  BoGuard gates on role in {staff, admin}; a client is redirected out.
+  FE guard is UX only — see note below.
+end note
+
+== Admin picks the active staff context ==
+Staff -> FE : (admin) choose staff to manage
+FE -> NGINX : GET /v1/staff/
+NGINX -> BE : proxy
+note over BE
+  users.views.StaffPublicListView (AllowAny)
+  users.selectors.list_staff(bookable_only=True)
+  Admin selects a staff_id used to scope BO calls
+  (schedules, appointments, reports). Staff manage only themselves.
+end note
+BE -> DB : SELECT users_user (role=staff, is_active)
+BE --> FE : 200 (StaffPublicSerializer[])
+FE --> Staff : BO shell ready
+
+note over Staff, DB
+  Authorization is enforced SERVER-SIDE on every /bo/v1/ endpoint
+  via IsStaffMember (role staff/admin — common/permissions.py).
+  The FE BoGuard is convenience/UX only; it is never the access control.
+end note
+@enduml

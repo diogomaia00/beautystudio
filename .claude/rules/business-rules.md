@@ -7,6 +7,7 @@ These rules are enforced in the relevant app's service layer (see `ddd.md`) and 
 
 - Clients must have an **account to book**; they **self sign-up** and log in. (Roles and auth surfaces are defined in `auth.md`.)
 - **Required sign-up fields:** first name, last name, birthday, email, phone number (MSISDN, E.164 — supports non-Portuguese numbers).
+- **Minimum age:** clients must be at least **12 years old** to create an account. The birthday cannot be in the future. Enforced both in the sign-up form (real-time) and server-side (`MIN_SIGNUP_AGE_YEARS`).
 - The profile also stores the **preferred notification channel** (whatsapp / sms / email; default whatsapp). Notifications follow a **WhatsApp → SMS → email** cascade (the preferred channel is tried first); see ADR 0007. Birthday powers the birthday message.
 - Staff can also create/adjust client profiles in the BO (except personal info and contacts).
 

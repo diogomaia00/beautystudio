@@ -94,25 +94,48 @@ Update each task's **Status** as work progresses.
 
 | #   | Status | Task |
 |-----|--------|------|
-| 5.1 | pending | BO app bootstrap + session auth (see ADR 0002) |
-| 5.2 | pending | Services & pricing management (incl. `is_quote_only`) |
-| 5.2b | pending | BO: manage seasonal discounts + staff education |
-| 5.3 | pending | Staff schedule / time-off / break-window management |
-| 5.4 | pending | Client management + per-client duration override (minutes) |
-| 5.4b | pending | BO: staff add/remove client blacklist; view client attendance history |
-| 5.5 | pending | Waitlist + custom-request handling |
-| 5.6 | pending | Mark appointment made / no-show; edit Nail Art appointments |
-| 5.7 | pending | Monthly reports view |
-| 5.8 | pending | Tablet-first responsive pass (staff are mostly on iPad) |
+| 5.1 | developed | BO app bootstrap + session auth (see ADR 0002) — `(bo)` shell: `BoGuard` (staff/admin gate), `Sidebar` (logo + text page links), `ActiveStaffProvider` (self for staff, picker for admin), dashboard `/bo`. Flow: `bo-overview.puml` |
+| 5.2 | developed | Services & pricing management (incl. `is_quote_only`) — `/bo/servicos` (`features/boServices`). Flow: `bo-manage-service.puml` |
+| 5.2b | developed | BO: manage seasonal discounts + staff education — discounts in `/bo/servicos`; education in `/bo/formacoes` (`features/boEducation`). Flows: `bo-manage-service.puml`, `bo-manage-education.puml` |
+| 5.3 | developed | Staff schedule / time-off / break-window management — `/bo/horarios` (`features/boSchedule`; schedule replace via PUT). Flow: `bo-manage-schedule.puml` |
+| 5.4 | developed | Client management + per-client duration override (minutes) — `/bo/clientes` (`features/boClients`). Flow: `bo-manage-client.puml` |
+| 5.4b | developed | BO: staff add/remove client blacklist; view client attendance history — in `/bo/clientes` detail. Flow: `bo-manage-client.puml` |
+| 5.5 | developed | Waitlist + custom-request handling — `/bo/lista-espera` (`features/boWaitlist`) + alerts `/bo/alertas` (`features/boAlerts`). Flow: `bo-handle-waitlist.puml` |
+| 5.6 | developed | Mark appointment made / no-show; edit Nail Art appointments — `/bo/agenda` (`features/boAppointments`; made/no-show/cancel/reschedule/nail-art). Flow: `bo-appointment-lifecycle.puml` |
+| 5.7 | developed | Monthly reports view — `/bo/relatorios` (`features/boReports`; list/detail/generate). Flow: `bo-generate-report.puml` |
+| 5.8 | developed | Tablet-first responsive pass (staff are mostly on iPad) — sidebar is a fixed left rail ≥768px, scrollable top rail on mobile; tables scroll inside `panel.tableWrap`. Verified at tablet (768px). |
 
 ## Phase 6 — Cross-cutting & hardening
 
 | #   | Status | Task |
 |-----|--------|------|
-| 6.1 | pending | Test suites: unit (services/selectors), integration (endpoints), frontend component/e2e |
-| 6.2 | pending | Rate limiting / throttling |
-| 6.3 | pending | HTTPS / TLS at NGINX; deployment to Hetzner VPS |
-| 6.4 | pending | Seed/fixtures for local dev |
+| 6.1 | developed | Test suites: backend unit/integration (82 tests — auth, booking, slots, services, reports, **throttling**, **analytics metrics**, **notifications cascade/BO alerts**) + frontend **Jest + React Testing Library** (47 tests — `countries`/`validation`/`services.format`/`boReports.format`/`api` units + `Button`/`Modal`/`NailArtModal` components). Frontend e2e (Playwright) deferred (can't reach the Docker stack from the sandbox). Run via `make test` (backend uses `config.settings.test`). |
+| 6.2 | developed | Rate limiting / throttling — DRF global `AnonRateThrottle` (`60/min`) + `UserRateThrottle` (`240/min`) + tighter `otp` scope (`10/min`), all env-overridable (`THROTTLE_*`). Counters in LocMemCache (no Redis). Tested in `apps/core/tests/test_throttling.py`. |
+| 6.3 | pending | HTTPS / TLS at NGINX; deployment to Hetzner VPS — **deferred** (no server/domain/repo yet). |
+| 6.4 | developed | Seed/fixtures for local dev — `manage.py seed_dev` (idempotent, DEBUG-only guard): admin superuser + sample clients + weekly schedules/lunch breaks/time-off + future `booked` and past `made` appointments (report data) + waitlist & custom request. `make seed-dev` + `.env.example` `SEED_ADMIN_*`. |
+
+---
+
+## BACKLOG — pre-deployment hardening (after all phases)
+
+Verification gaps and follow-ups identified during the Phase 5 BO build. These are
+not blockers for feature-complete, but should be cleared **after all phases are done,
+before deploying** (they overlap with Phase 6.1/6.2). Each is low-risk-but-unverified.
+
+| #   | Status | Task |
+|-----|--------|------|
+| BUG.1 | done | **🐞 BUG · P0 — Validar data de nascimento no registo.** Resolvido: validação em **tempo real** no registo (RHF `mode: onChange` + `validateBirthday` + `max` = hoje no input) e **server-side** (`validate_birthday` em `OtpVerifySerializer` + `ClientProfileUpdateSerializer`, `MIN_SIGNUP_AGE_YEARS=12`). Bloqueia datas futuras e idade < 12. Regra adicionada ao `business-rules.md`. Verificado: backend (futuro/8/12/30 anos) + browser (erros em tempo real). |
+| B.1 | pending | **End-to-end BO mutation pass.** Every BO write (create/edit service, discount add/remove, schedule replace, breaks/time-off, blacklist toggle, duration override, appointment made/no-show/cancel/reschedule, nail-art edit, report generate, education CRUD, waitlist/custom-request status) was contract-verified but never exercised through the UI. Drive each one live and fix CSRF / body-shape / cache-invalidation issues. |
+| B.2 | pending | **Harden the schedule PUT helper.** `boSchedule/api/mutations.ts` re-implements lib/api's CSRF logic because `boApiClient` has no `.put`. Either add `put` to the shared client and use it, or unit-test this helper. It's the only bespoke request code in the BO. |
+| B.3 | pending | **Verify the admin multi-staff flow.** The `ActiveStaffContext` admin branch (fetch `/v1/staff`, sidebar picker, switching active staff → all pages refetch) was never run live (Phase 5 verified as a `staff` user only). |
+| B.4 | done | **Audited list-response envelopes.** Swept all list views: every client/BO list returns a bare array except `services.ServiceListView`, which inherited the global paginator (`{count,results}`) and broke the `/agendar` catalog (`services.map is not a function`). Fixed by setting `pagination_class = None` (matches its sibling `CategoryListView` + the bounded single-clinic catalog). |
+| B.5 | pending | **Cross-feature UX consistency pass.** The 6 BO features were built in parallel; reconcile divergent patterns (status-change buttons vs selects, `window.confirm` vs modal, empty/error copy, allowed status transitions vs backend). |
+| B.6 | pending | **Reports render with real data.** `ReportMetrics` matches `analytics.selectors.compute_staff_monthly_metrics` but was never rendered from a generated report (revenue is a decimal **string** — watch formatting). |
+| B.7 | partial | **Frontend tests for BO** (component/integration) — overlaps Phase 6.1. Started: `boAppointments/NailArtModal` component test + `boReports.format` unit tests. Still pending: broader coverage of the other BO features (services/clients/schedule/waitlist/reports tables + mutation hooks). |
+| REF.1 | done | **♻️ REFACTOR — Seletor de país no campo de telemóvel.** Resolvido: `PhoneField` (dropdown de país, default Portugal + input nacional) em login + registo; o FE compõe o E.164 (`composeE164`/`parseE164` em `features/auth/countries.ts`). Validação E.164 mantida no servidor. Verificado em browser: `912345678` + PT → `+351912345678`. |
+| REF.2 | done | **♻️ REFACTOR — Campo OTP separado do campo de telemóvel.** Resolvido: no passo do código, o telemóvel permanece visível (read-only) e aparece um campo dedicado ao OTP (`LoginForm.tsx` + `RegisterForm.tsx`). Verificado em browser. |
+
+> Done during Phase 5 wrap-up (not backlog): agenda now shows the client's **name + phone** (BO-only `BoAppointmentSerializer` with `client_name`/`client_msisdn`; client `/v1` payload unchanged).
 
 ---
 

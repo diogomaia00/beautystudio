@@ -1,0 +1,86 @@
+@startuml
+title BO — manage staff availability (schedule, breaks, time-off)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+' Bookable slots are GENERATED DYNAMICALLY from this data (database.md) —
+' nothing here is stored as a fixed slot.
+
+== Read the weekly schedule ==
+Staff -> FE : open Availability
+FE -> NGINX : GET /bo/v1/availability/staff/{staffId}/schedule/  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  availability.views.BoStaffScheduleView.get (IsStaffMember)
+  availability.selectors.list_schedules()
+end note
+BE -> DB : SELECT availability_staffschedule
+BE --> FE : 200 (StaffScheduleSerializer[])
+
+== Replace the whole weekly schedule ==
+Staff -> FE : edit weekly hours, save
+FE -> NGINX : PUT /bo/v1/availability/staff/{staffId}/schedule/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  availability.serializers.WeeklyScheduleWriteSerializer.is_valid()
+end note
+BE -> BE : availability.services.replace_weekly_schedule()
+note over BE
+  PUT REPLACES the entire weekly schedule (delete all + recreate),
+  inside a transaction. Per entry:
+  - weekday in 1..7  (1=Sun .. 7=Sat — clinic convention, database.md)
+  - end_time after start_time (_validate_window)
+end note
+BE -> DB : DELETE then INSERT availability_staffschedule (atomic)
+BE --> FE : 200 (StaffScheduleSerializer[])
+
+== Daily break windows (e.g. lunch) ==
+Staff -> FE : add a break
+FE -> NGINX : POST /bo/v1/availability/staff/{staffId}/breaks/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : availability.services.add_break()
+note over BE
+  weekday 1..7; end_time after start_time. Break windows are
+  non-bookable and subtracted during slot generation (business-rules.md).
+end note
+BE -> DB : INSERT availability_staffbreak
+BE --> FE : 201 (StaffBreakSerializer)
+
+Staff -> FE : remove a break
+FE -> NGINX : DELETE /bo/v1/availability/staff/{staffId}/breaks/{breakId}/
+NGINX -> BE : proxy
+BE -> BE : availability.services.delete_break()
+BE -> DB : DELETE availability_staffbreak
+BE --> FE : 204 No Content
+
+== Time-off / holidays (date ranges) ==
+Staff -> FE : block time off
+FE -> NGINX : POST /bo/v1/availability/staff/{staffId}/time-off/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : availability.services.add_time_off()
+note over BE
+  end_at must be after start_at. Time-off is stored as a UTC
+  TIMESTAMPTZ range and removes that availability during slot generation.
+end note
+BE -> DB : INSERT availability_stafftimeoff
+BE --> FE : 201 (StaffTimeOffSerializer)
+
+Staff -> FE : remove time off
+FE -> NGINX : DELETE /bo/v1/availability/staff/{staffId}/time-off/{timeOffId}/
+NGINX -> BE : proxy
+BE -> BE : availability.services.delete_time_off()
+BE -> DB : DELETE availability_stafftimeoff
+BE --> FE : 204 No Content
+
+note over Staff, DB
+  Clients never see this data directly: GET /v1/availability/slots
+  calls availability.services.generate_slots(), which derives bookable
+  start times from schedule minus breaks, time-off, and existing
+  appointments — slots are NEVER persisted (database.md).
+end note
+@enduml

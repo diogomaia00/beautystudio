@@ -1,0 +1,87 @@
+@startuml
+title BO — manage clients (attendance, blacklist, duration overrides)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+
+== List / search clients ==
+Staff -> FE : open Clients
+FE -> NGINX : GET /bo/v1/clients/?search=  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  users.views.BoClientListView (IsStaffMember)
+  users.selectors.list_clients(search=...)  (msisdn contains)
+end note
+BE -> DB : SELECT users_user (role=client)
+BE --> FE : 200 (ClientSerializer[])
+
+== Client detail with attendance history ==
+Staff -> FE : open a client profile
+FE -> NGINX : GET /bo/v1/clients/{id}/
+NGINX -> BE : proxy
+note over BE
+  users.views.BoClientDetailView.get
+  users.selectors.get_client()
+  appointments.selectors.get_client_attendance_summary()  (cross-app via selector)
+end note
+note right of BE
+  Attendance (made / canceled / no-show) is DERIVED from appointment
+  status — there is no strike counter column (business-rules.md).
+end note
+BE -> DB : SELECT users_user ; SELECT appointments (grouped by status)
+BE --> FE : 200 (ClientSerializer + attendance)
+
+== Blacklist toggle (staff-only) ==
+Staff -> FE : add / remove from blacklist
+FE -> NGINX : POST /bo/v1/clients/{id}/blacklist/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  users.serializers.BlacklistSerializer.is_valid()
+end note
+BE -> BE : users.services.set_blacklisted()
+note over BE
+  Business rules (see business-rules.md):
+  - only staff set/clear the blacklisted flag (gated by IsStaffMember)
+  - only a client can be blacklisted (role check)
+  - a blacklisted client cannot book — ENFORCED in
+    appointments.services.create_appointment (not here)
+  - existing appointments are unaffected
+end note
+BE -> DB : UPDATE users_user (blacklisted)
+BE --> FE : 200 (ClientSerializer)
+
+== Per-client service duration override (minutes) ==
+Staff -> FE : view overrides
+FE -> NGINX : GET /bo/v1/clients/{id}/durations/
+NGINX -> BE : proxy
+note over BE
+  users.selectors.list_client_service_durations()
+end note
+BE -> DB : SELECT users_clientserviceduration
+BE --> FE : 200 (ClientServiceDurationSerializer[])
+
+Staff -> FE : set an override for a service
+FE -> NGINX : POST /bo/v1/clients/{id}/durations/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : users.services.set_client_service_duration()
+note over BE
+  duration_minutes > 0; override applies to clients only (update_or_create).
+  At booking time it replaces the service default and changes the computed
+  end_at (appointments.services._compute_duration — business-rules.md).
+end note
+BE -> DB : UPSERT users_clientserviceduration
+BE --> FE : 200 (ClientServiceDurationSerializer)
+
+Staff -> FE : clear an override
+FE -> NGINX : DELETE /bo/v1/clients/{id}/durations/{serviceId}/
+NGINX -> BE : proxy
+BE -> BE : users.services.clear_client_service_duration()
+BE -> DB : DELETE users_clientserviceduration
+BE --> FE : 204 No Content
+FE --> Staff : client profile updated
+@enduml

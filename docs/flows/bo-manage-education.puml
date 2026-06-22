@@ -1,0 +1,64 @@
+@startuml
+title BO — manage staff education (formations)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+' Education records are managed by the staff member (and admin) in the BO.
+
+== List education records ==
+Staff -> FE : open Education
+FE -> NGINX : GET /bo/v1/staff/{staffId}/educations/  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  users.views.BoStaffEducationListCreateView.get (IsStaffMember)
+  users.selectors.list_staff_educations()
+end note
+BE -> DB : SELECT users_staffeducation
+BE --> FE : 200 (StaffEducationSerializer[])
+
+== Add an education record ==
+Staff -> FE : add a formation / webinar / course
+FE -> NGINX : POST /bo/v1/staff/{staffId}/educations/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  users.selectors.get_staff() ; StaffEducationWriteSerializer.is_valid()
+end note
+BE -> BE : users.services.create_staff_education()
+note over BE
+  Fields: education_type, provider, title, completed_on, description.
+  Records belong to staff members (role check).
+end note
+BE -> DB : INSERT users_staffeducation
+BE --> FE : 201 (StaffEducationSerializer)
+
+== Edit an education record ==
+Staff -> FE : edit a record
+FE -> NGINX : PATCH /bo/v1/staff/{staffId}/educations/{id}/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  users.selectors.get_staff_education(staff_id, education_id)  (ownership scoped)
+  StaffEducationWriteSerializer(partial=True)
+end note
+BE -> BE : users.services.update_staff_education()
+BE -> DB : UPDATE users_staffeducation
+BE --> FE : 200 (StaffEducationSerializer)
+
+== Delete an education record ==
+Staff -> FE : remove a record
+FE -> NGINX : DELETE /bo/v1/staff/{staffId}/educations/{id}/
+NGINX -> BE : proxy
+BE -> BE : users.services.delete_staff_education()
+BE -> DB : DELETE users_staffeducation
+BE --> FE : 204 No Content
+
+note over Staff, DB
+  Education is shown on the PUBLIC staff page (/equipa) so clients can see
+  experience — GET /v1/staff/ + /v1/staff/{id}/ (users.views.StaffPublic*,
+  AllowAny), serialized via StaffPublicSerializer (business-rules.md).
+end note
+@enduml

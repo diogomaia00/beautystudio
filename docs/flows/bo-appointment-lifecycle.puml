@@ -1,0 +1,102 @@
+@startuml
+title BO — appointment lifecycle (made / no-show / cancel / reschedule / nail art)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+
+== Load the calendar (range query) ==
+Staff -> FE : open calendar (FullCalendar)
+FE -> NGINX : GET /bo/v1/appointments/?staff_id&start_at&end_at  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  appointments.views.BoAppointmentListView (IsStaffMember)
+  staff_id + start_at + end_at are all REQUIRED
+  appointments.selectors.list_staff_appointments_in_range()
+end note
+BE -> DB : SELECT appointments (staff, range)
+BE --> FE : 200 (AppointmentSerializer[])
+
+== Mark made ==
+Staff -> FE : mark appointment made
+FE -> NGINX : POST /bo/v1/appointments/{id}/made/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : appointments.services.mark_made()
+note over BE : only a booked appointment can be marked made
+BE -> DB : UPDATE appointment (status=made)
+BE --> FE : 200 (AppointmentSerializer)
+
+== Mark no-show ==
+Staff -> FE : mark no-show
+FE -> NGINX : POST /bo/v1/appointments/{id}/no-show/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : appointments.services.mark_no_show()
+note over BE
+  only a booked appointment can be a no-show.
+  No-shows are tracked for analytics/reporting only —
+  no automatic penalty or block in v1 (business-rules.md).
+end note
+BE -> DB : UPDATE appointment (status=no_show)
+BE --> FE : 200 (AppointmentSerializer)
+
+== Cancel (staff) ==
+Staff -> FE : cancel appointment
+FE -> NGINX : POST /bo/v1/appointments/{id}/cancel/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : appointments.services.cancel_appointment(reason=staff)
+note over BE
+  Business rules (see business-rules.md):
+  - not already canceled / completed (made / no_show)
+  - sets status=canceled, cancel_reason=staff
+  - staff cancellations are NOT bound by the 24h self-service cutoff
+  - frees the time -> waitlist alert (_alert_waitlist)
+end note
+BE -> DB : UPDATE appointment (status=canceled, cancel_reason=staff)
+BE -> BE : notifications.notify_waitlist_for_freed_time()
+BE -> DB : SELECT waitlist ; INSERT notifications_boalert (if anyone waiting)
+BE --> FE : 200 (AppointmentSerializer, status=canceled)
+
+== Reschedule (staff) ==
+Staff -> FE : drag/drop to a new time
+FE -> NGINX : POST /bo/v1/appointments/{id}/reschedule/ { new_start_at }  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  appointments.serializers.RescheduleSerializer.is_valid()
+end note
+BE -> BE : appointments.services.reschedule_appointment(by_client=False)
+note over BE
+  Business rules:
+  - only a booked appointment; status STAYS booked (NOT a cancellation,
+    so never counted as canceled in reports — business-rules.md)
+  - re-validates booking window + working schedule at the new time
+  - locks the staff row (_lock_staff) and re-checks for overlap
+  - frees the OLD start for the waitlist (alert at freed time)
+end note
+BE -> DB : SELECT ... FOR UPDATE (staff row) ; UPDATE appointment (start_at/end_at)
+BE -> DB : SELECT waitlist ; INSERT notifications_boalert (if anyone waiting)
+BE --> FE : 200 (AppointmentSerializer, status=booked)
+
+== Edit Nail Art (staff-only) ==
+Staff -> FE : switch Nail Art simple <-> complex
+FE -> NGINX : PATCH /bo/v1/appointments/{id}/nail-art/ { nail_art_option }  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  appointments.serializers.NailArtEditSerializer.is_valid()
+end note
+BE -> BE : appointments.services.edit_nail_art()
+note over BE
+  Business rules (see business-rules.md):
+  - STAFF can change Nail Art; clients cannot (client app shows a
+    "talk to staff" modal — see edit-nail-art-blocked.puml)
+  - service must support Nail Art; appointment must be booked
+  - recomputes duration (+15 simple / +30 complex) and end_at
+  - locks staff row + re-checks overlap for the new duration
+end note
+BE -> DB : SELECT ... FOR UPDATE (staff row) ; UPDATE appointment (nail_art, end_at, duration snapshot)
+BE --> FE : 200 (AppointmentSerializer)
+FE --> Staff : calendar refreshed
+@enduml

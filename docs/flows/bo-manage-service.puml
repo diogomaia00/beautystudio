@@ -1,0 +1,91 @@
+@startuml
+title BO — manage services, pricing & seasonal discounts
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+
+== List / create services ==
+Staff -> FE : open Services
+FE -> NGINX : GET /bo/v1/services/  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  services.views.BoServiceListCreateView (IsStaffMember)
+  services.selectors.list_services()  (active_only optional in BO)
+end note
+BE -> DB : SELECT services
+BE --> FE : 200 (ServiceSerializer[])
+
+Staff -> FE : create a service
+FE -> NGINX : POST /bo/v1/services/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  services.serializers.ServiceWriteSerializer.is_valid()
+  resolve category (selectors.get_category) + staff (users.selectors.get_user_by_id)
+end note
+BE -> BE : services.services.create_service()
+note over BE
+  Business rules (see business-rules.md / ADR 0001):
+  - each service belongs to exactly one staff member (_validate_staff)
+  - price is nullable; quote-only ("price on request") must have NO price,
+    a non quote-only service MUST have a price (_validate_price_invariant)
+  - duration_minutes is the service default
+end note
+BE -> DB : INSERT services_service
+BE --> FE : 201 (ServiceSerializer)
+
+== Edit a service (price / duration / category / staff) ==
+Staff -> FE : edit a service
+FE -> NGINX : PATCH /bo/v1/services/{id}/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  services.views.BoServiceDetailView.patch
+  ServiceWriteSerializer(partial=True)
+end note
+BE -> BE : services.services.update_service()
+note over BE
+  Price edits affect only FUTURE bookings — past appointments keep their
+  snapshot (ADR 0001), so historical revenue is never rewritten.
+  Re-checks the price/quote-only invariant.
+end note
+BE -> DB : UPDATE services_service
+BE --> FE : 200 (ServiceSerializer)
+
+== Seasonal discounts ==
+Staff -> FE : open discounts for a service
+FE -> NGINX : GET /bo/v1/services/{id}/discounts/
+NGINX -> BE : proxy
+note over BE
+  services.views.BoDiscountListCreateView.get
+  services.selectors.list_service_discounts()
+end note
+BE -> DB : SELECT services_servicediscount
+BE --> FE : 200 (ServiceDiscountSerializer[])
+
+Staff -> FE : add a time-bounded % discount
+FE -> NGINX : POST /bo/v1/services/{id}/discounts/  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : services.services.create_discount()
+note over BE
+  Business rules (see business-rules.md — Pricing):
+  - cannot discount a quote-only service
+  - ends_at must be after starts_at
+  - 0 < percentage <= 100
+  The effective (discounted) price feeds services.effective_price(),
+  which is what gets SNAPSHOTTED onto an appointment at booking time.
+end note
+BE -> DB : INSERT services_servicediscount
+BE --> FE : 201 (ServiceDiscountSerializer)
+
+Staff -> FE : end a discount
+FE -> NGINX : DELETE /bo/v1/services/{id}/discounts/{discountId}/
+NGINX -> BE : proxy
+BE -> BE : services.services.deactivate_discount()  ' soft delete (is_active=False)
+BE -> DB : UPDATE services_servicediscount (is_active=false)
+BE --> FE : 204 No Content
+FE --> Staff : catalog & pricing updated
+@enduml

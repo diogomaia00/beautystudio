@@ -1,0 +1,63 @@
+@startuml
+title BO — generate & view monthly report (on demand)
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+' The same report is also produced on a cron schedule — see monthly-report.puml.
+
+== Generate on demand ==
+Staff -> FE : pick year + month, generate
+FE -> NGINX : POST /bo/v1/reports/generate/ { year, month, staff_id? }  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  reports.views.BoReportGenerateView (IsStaffMember)
+  reports.serializers.GenerateReportSerializer.is_valid()
+  _resolve_staff(): staff use their OWN id; admin MUST pass staff_id
+end note
+BE -> BE : reports.services.generate_monthly_report()
+BE -> BE : analytics.selectors.compute_staff_monthly_metrics()
+note over BE
+  Metrics (background-jobs.md) — reads appointments via the appointments
+  selector layer (anti-corruption boundary, ddd.md):
+  - hours worked (from made appts' duration snapshots)
+  - appointments booked / made / canceled / no-show
+  - distinct clients + new clients
+  - top-3 most popular services
+  - revenue total + per service (booking-time price snapshot, ADR 0001;
+    quote-only appts contribute no revenue)
+  - revenue per hour worked
+end note
+BE -> DB : SELECT appointments (local month range)
+BE -> DB : UPSERT reports_monthlyreport (unique staff+year+month)
+BE --> FE : 201 (MonthlyReportSerializer)
+
+== List reports ==
+Staff -> FE : open Reports
+FE -> NGINX : GET /bo/v1/reports/?staff_id=  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  reports.views.BoReportListView
+  _resolve_staff(): staff see only their own; admin may pass ?staff_id
+  reports.selectors.list_reports(staff.id)
+end note
+BE -> DB : SELECT reports_monthlyreport
+BE --> FE : 200 (MonthlyReportSerializer[])
+
+== View one report ==
+Staff -> FE : open a report
+FE -> NGINX : GET /bo/v1/reports/{id}/
+NGINX -> BE : proxy
+note over BE
+  reports.views.BoReportDetailView
+  reports.selectors.get_report()
+  staff ownership check (report.staff_id == request.user.id), admin unrestricted
+end note
+BE -> DB : SELECT reports_monthlyreport
+BE --> FE : 200 (MonthlyReportSerializer)
+FE --> Staff : monthly metrics dashboard
+@enduml

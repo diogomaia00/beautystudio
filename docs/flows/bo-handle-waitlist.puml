@@ -1,0 +1,86 @@
+@startuml
+title BO — handle waitlist, custom requests & alerts
+
+actor Staff
+participant "NGINX" as NGINX
+participant "FE (Next.js BO)" as FE
+participant "BE (Django/DRF)" as BE
+database "DB (PostgreSQL)" as DB
+
+' All endpoints below are gated by IsStaffMember (role staff/admin).
+
+== BO alerts (in-app) ==
+Staff -> FE : open notifications
+FE -> NGINX : GET /bo/v1/notifications/alerts/?unread_only=true  (Cookie: sessionid)
+NGINX -> BE : proxy
+note over BE
+  notifications.views.BoAlertListView (IsStaffMember)
+  notifications.selectors.list_bo_alerts(staff_id, unread_only)
+  Alerts are created when a client joins a waitlist, when a booked time is
+  freed with people waiting, and on new custom requests
+  (notifications.services.create_bo_alert).
+end note
+BE -> DB : SELECT notifications_boalert (staff scoped)
+BE --> FE : 200 (BoAlertSerializer[])
+
+Staff -> FE : mark an alert read
+FE -> NGINX : POST /bo/v1/notifications/alerts/{id}/read/  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  notifications.selectors.get_bo_alert(staff_id, alert_id)  (ownership scoped)
+  notifications.services.mark_alert_read()
+end note
+BE -> DB : UPDATE notifications_boalert (is_read=true)
+BE --> FE : 200 (BoAlertSerializer)
+
+== Waitlist for occupied times ==
+Staff -> FE : open the waitlist for a staff member
+FE -> NGINX : GET /bo/v1/availability/staff/{staffId}/waitlist/?status=waiting
+NGINX -> BE : proxy
+note over BE
+  availability.views.BoWaitlistView.get
+  availability.selectors.list_waitlist(staff_id, status)
+end note
+BE -> DB : SELECT availability_waitlist
+BE --> FE : 200 (WaitlistSerializer[])
+
+Staff -> FE : update a waitlist entry status
+FE -> NGINX : PATCH /bo/v1/availability/staff/{staffId}/waitlist/{id}/ { status }  (X-CSRFToken)
+NGINX -> BE : proxy
+note over BE
+  availability.serializers.StatusUpdateSerializer.is_valid()
+end note
+BE -> BE : availability.services.update_waitlist_status()
+note over BE
+  Business rules (see business-rules.md):
+  - status must be a valid WaitlistStatus
+  - NO automatic offer/booking in v1 — staff contact the waitlisted
+    client OUTSIDE the app and arrange any swap manually
+end note
+BE -> DB : UPDATE availability_waitlist (status)
+BE --> FE : 200 (WaitlistSerializer)
+
+== Custom booking requests (beyond the horizon) ==
+Staff -> FE : open custom requests
+FE -> NGINX : GET /bo/v1/availability/staff/{staffId}/custom-requests/?status=pending
+NGINX -> BE : proxy
+note over BE
+  availability.views.BoCustomRequestView.get
+  availability.selectors.list_custom_requests(staff_id, status)
+end note
+BE -> DB : SELECT availability_custombookingrequest
+BE --> FE : 200 (CustomBookingRequestSerializer[])
+
+Staff -> FE : update a request status
+FE -> NGINX : PATCH /bo/v1/availability/staff/{staffId}/custom-requests/{id}/ { status }  (X-CSRFToken)
+NGINX -> BE : proxy
+BE -> BE : availability.services.update_custom_request_status()
+note over BE
+  status must be a valid CustomRequestStatus. Custom requests (beyond
+  booking_horizon_days) are NOT auto-confirmed — the responsible staff
+  member handles them and contacts the client outside the app (business-rules.md).
+end note
+BE -> DB : UPDATE availability_custombookingrequest (status)
+BE --> FE : 200 (CustomBookingRequestSerializer)
+FE --> Staff : list refreshed
+@enduml
